@@ -43,8 +43,15 @@ enum class AdminSectionTab(val label: String, val icon: String) {
     PROFILE("Profile", "👤"),
     STATISTICS("Stats", "📊"),
     ANALYTICS("Analytics", "📈"),
-    VIDEOS("Videos & Shorts", "🎬"),
-    MONETIZATION("Earn", "💰")
+    VIDEOS("Videos & Content", "🎬"),
+    MONETIZATION("Earn & Payout", "💰")
+}
+
+enum class VideoManagementTab(val label: String) {
+    VIDEOS("Videos"),
+    SHORTS("Shorts"),
+    LIVE("Live"),
+    DASHBOARD("Dashboard")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,20 +88,21 @@ fun LocalAdminDashboardScreen(
     }
 
     // --- Channel Profile State ---
-    var profileName by remember { mutableStateOf(StudioRepository.danielProfile.name) }
-    var profileHandle by remember { mutableStateOf(StudioRepository.danielProfile.handle) }
-    var profileSubs by remember { mutableStateOf(StudioRepository.danielProfile.subscribersCount) }
-    var profileEmail by remember { mutableStateOf(StudioRepository.danielProfile.email) }
-    var profileDesc by remember { mutableStateOf(StudioRepository.danielProfile.description) }
-    var profileAvatarUri by remember { mutableStateOf(StudioRepository.danielProfile.avatarUri) }
-    var profileMonetized by remember { mutableStateOf(StudioRepository.danielProfile.isMonetized) }
+    var profileName by remember { mutableStateOf(StudioRepository.currentProfile.name) }
+    var profileHandle by remember { mutableStateOf(StudioRepository.currentProfile.handle) }
+    var profileSubs by remember { mutableStateOf(StudioRepository.currentProfile.subscribersCount) }
+    var profileEmail by remember { mutableStateOf(StudioRepository.currentProfile.email) }
+    var profileDesc by remember { mutableStateOf(StudioRepository.currentProfile.description) }
+    var profileAvatarUri by remember { mutableStateOf(StudioRepository.currentProfile.avatarUri) }
+    var profileAvatarUrlInput by remember { mutableStateOf("") }
+    var profileMonetized by remember { mutableStateOf(StudioRepository.currentProfile.isMonetized) }
 
     val avatarPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         if (uri != null) {
             profileAvatarUri = uri.toString()
-            snackbarMessage = "Profile image selected from gallery!"
+            snackbarMessage = "Profile picture selected from gallery!"
         }
     }
 
@@ -110,10 +118,10 @@ fun LocalAdminDashboardScreen(
     var analyticsTotalViewsInput by remember { mutableStateOf("5000") }
     var analyticsWatchHoursInput by remember { mutableStateOf("150.0") }
     var analyticsRevenueDollarsInput by remember { mutableStateOf("250.00") }
+    var analyticsMonthlyAudienceInput by remember { mutableStateOf(StudioRepository.communityMonthlyAudience) }
     var generatedViewsDistribution by remember { mutableStateOf<List<Float>>(emptyList()) }
     var isAnalyticsCalculated by remember { mutableStateOf(false) }
 
-    // Initialize or recalculate analytics distribution preview
     fun recalculateDistribution() {
         val total = analyticsTotalViewsInput.toLongOrNull() ?: 5000L
         generatedViewsDistribution = LocalAdminStore.distributeExactSum(total, analyticsDays)
@@ -125,18 +133,23 @@ fun LocalAdminDashboardScreen(
     }
 
     // --- Videos and Shorts State ---
-    var selectedVideoTab by remember { mutableStateOf(ContentType.VIDEO) }
+    var selectedVideoCategory by remember { mutableStateOf(VideoManagementTab.VIDEOS) }
     var videoToEdit by remember { mutableStateOf<VideoItem?>(null) }
     var showVideoDialog by remember { mutableStateOf(false) }
     var videoToDelete by remember { mutableStateOf<VideoItem?>(null) }
 
-    // --- Monetization State ---
+    // --- Monetization & Payout State ---
     var earnIsMonetized by remember { mutableStateOf(StudioRepository.isMonetized) }
     var earnWatchHours by remember { mutableStateOf(StudioRepository.monetizationWatchHours) }
     var earnReqWatchHours by remember { mutableStateOf(StudioRepository.monetizationRequiredWatchHours) }
     var earnShortsViews by remember { mutableStateOf(StudioRepository.monetizationShortsViews) }
     var earnReqShortsViews by remember { mutableStateOf(StudioRepository.monetizationRequiredShortsViews) }
     var earnVideoUploads by remember { mutableStateOf(StudioRepository.monetizationVideoUploads) }
+    var earnPayoutHeadline by remember { mutableStateOf(StudioRepository.payoutHeadline) }
+    var earnPayoutAmount by remember { mutableStateOf(StudioRepository.payoutAmount) }
+    var earnPayoutMonthlyMonth by remember { mutableStateOf(StudioRepository.payoutMonthlyMonth) }
+    var earnPayoutMonthlyAmount by remember { mutableStateOf(StudioRepository.payoutMonthlyAmount) }
+    var earnPayoutMinimumText by remember { mutableStateOf(StudioRepository.payoutMinimumText) }
 
     Scaffold(
         topBar = {
@@ -144,13 +157,13 @@ fun LocalAdminDashboardScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Local Studio Admin",
+                            text = "Studio Admin Panel",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textPrimary
                         )
                         Text(
-                            text = "Offline demo controls (This Device Only)",
+                            text = "Live Data Customization & On-Device Storage",
                             fontSize = 11.sp,
                             color = colors.textSecondary
                         )
@@ -215,7 +228,6 @@ fun LocalAdminDashboardScreen(
                         onClick = {
                             if (!checkAccessOrLock()) return@Button
 
-                            // Save active section
                             when (currentSection) {
                                 AdminSectionTab.PROFILE -> {
                                     LocalAdminStore.saveChannelProfile(
@@ -227,7 +239,7 @@ fun LocalAdminDashboardScreen(
                                         avatarUri = profileAvatarUri,
                                         isMonetized = profileMonetized
                                     )
-                                    snackbarMessage = "Channel profile saved locally!"
+                                    snackbarMessage = "Channel profile saved immediately!"
                                 }
                                 AdminSectionTab.STATISTICS -> {
                                     LocalAdminStore.saveChannelStatistics(
@@ -237,7 +249,7 @@ fun LocalAdminDashboardScreen(
                                         revenue = statsRevenue.trim(),
                                         period = statsPeriod.trim()
                                     )
-                                    snackbarMessage = "Channel statistics updated immediately!"
+                                    snackbarMessage = "Dashboard statistics updated immediately!"
                                 }
                                 AdminSectionTab.ANALYTICS -> {
                                     val totalV = analyticsTotalViewsInput.toLongOrNull() ?: 5000L
@@ -249,10 +261,11 @@ fun LocalAdminDashboardScreen(
                                         totalWatchTimeHours = totalW,
                                         totalRevenueDollars = totalR
                                     )
-                                    snackbarMessage = "Analytics distributed ($totalV views across $analyticsDays days)!"
+                                    LocalAdminStore.saveMonthlyAudience(analyticsMonthlyAudienceInput.trim())
+                                    snackbarMessage = "Analytics and audience ($totalV views across $analyticsDays days) saved!"
                                 }
                                 AdminSectionTab.VIDEOS -> {
-                                    snackbarMessage = "Videos & Shorts saved!"
+                                    snackbarMessage = "Videos & Content are synchronized!"
                                 }
                                 AdminSectionTab.MONETIZATION -> {
                                     LocalAdminStore.saveMonetization(
@@ -263,7 +276,14 @@ fun LocalAdminDashboardScreen(
                                         requiredShortsViews = earnReqShortsViews.trim(),
                                         videoUploads = earnVideoUploads.trim()
                                     )
-                                    snackbarMessage = "Monetization status updated immediately!"
+                                    LocalAdminStore.savePayout(
+                                        headline = earnPayoutHeadline.trim(),
+                                        amount = earnPayoutAmount.trim(),
+                                        monthlyMonth = earnPayoutMonthlyMonth.trim(),
+                                        monthlyAmount = earnPayoutMonthlyAmount.trim(),
+                                        minimumText = earnPayoutMinimumText.trim()
+                                    )
+                                    snackbarMessage = "Monetization & Payout updated immediately!"
                                 }
                             }
                         },
@@ -298,7 +318,6 @@ fun LocalAdminDashboardScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Unobtrusive countdown / access status bar
             val isUnlimited = LocalAdminStore.isUnlimitedSession()
             val remainingSec = LocalAdminStore.getRemainingSeconds()
             val minutes = remainingSec / 60
@@ -319,34 +338,31 @@ fun LocalAdminDashboardScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.testTag("admin_countdown_display")
-                    ) {
-                        Icon(
-                            imageVector = if (isUnlimited) Icons.Default.LockOpen else Icons.Default.Timer,
-                            contentDescription = "Session Status",
-                            tint = if (isUnlimited) Color(0xFF4CAF50) else if (remainingSec < 60) Color(0xFFFF5252) else colors.navSelected,
-                            modifier = Modifier.size(16.dp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(if (isUnlimited) Color(0xFF4CAF50) else Color(0xFFFF9800))
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isUnlimited) "Admin Access: Unlimited" else "Admin Access: $timeString",
+                            text = if (isUnlimited) "Unlimited Access Active" else "Session Active: $timeString",
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (!isUnlimited && remainingSec < 60) Color(0xFFFF5252) else colors.textPrimary
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textPrimary
                         )
                     }
 
-                    TextButton(
-                        onClick = {
-                            LocalAdminStore.lockSession()
-                            onSessionExpired()
-                        },
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .height(28.dp)
-                            .testTag("admin_session_lock_btn")
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable {
+                                LocalAdminStore.lockSession()
+                                onSessionExpired()
+                            }
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Lock,
@@ -362,7 +378,6 @@ fun LocalAdminDashboardScreen(
 
             HorizontalDivider(color = colors.divider, thickness = 0.5.dp)
 
-            // Section Tabs Carousel
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -395,7 +410,6 @@ fun LocalAdminDashboardScreen(
                 }
             }
 
-            // Section Body
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -414,7 +428,36 @@ fun LocalAdminDashboardScreen(
                                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                                     Text("Channel Profile Editor", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.textPrimary)
 
-                                    // Profile Image Picker
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = {
+                                                profileName = "shain"
+                                                profileHandle = "@shain"
+                                                profileSubs = "128,490"
+                                                snackbarMessage = "Applied preset: 'shain'"
+                                            },
+                                            modifier = Modifier.weight(1f),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text("Set 'shain'", fontSize = 12.sp)
+                                        }
+                                        OutlinedButton(
+                                            onClick = {
+                                                profileName = "Daniel Dalen"
+                                                profileHandle = "@danieldalen"
+                                                profileSubs = "48,237"
+                                                snackbarMessage = "Applied preset: 'Daniel Dalen'"
+                                            },
+                                            modifier = Modifier.weight(1f),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text("Set 'Daniel Dalen'", fontSize = 12.sp)
+                                        }
+                                    }
+
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Box(
                                             modifier = Modifier
@@ -449,14 +492,14 @@ fun LocalAdminDashboardScreen(
                                             ) {
                                                 Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = colors.textPrimary, modifier = Modifier.size(16.dp))
                                                 Spacer(modifier = Modifier.width(6.dp))
-                                                Text("Choose Logo from Gallery", color = colors.textPrimary, fontSize = 12.sp)
+                                                Text("Choose from Gallery", color = colors.textPrimary, fontSize = 12.sp)
                                             }
 
                                             if (!profileAvatarUri.isNullOrBlank()) {
                                                 TextButton(
                                                     onClick = {
                                                         profileAvatarUri = null
-                                                        snackbarMessage = "Reset to default avatar"
+                                                        snackbarMessage = "Reset avatar to default emoji"
                                                     },
                                                     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
                                                 ) {
@@ -466,10 +509,36 @@ fun LocalAdminDashboardScreen(
                                         }
                                     }
 
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = profileAvatarUrlInput,
+                                            onValueChange = { profileAvatarUrlInput = it },
+                                            label = { Text("Or Paste Image URL") },
+                                            placeholder = { Text("https://...") },
+                                            singleLine = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Button(
+                                            onClick = {
+                                                if (profileAvatarUrlInput.isNotBlank()) {
+                                                    profileAvatarUri = profileAvatarUrlInput.trim()
+                                                    snackbarMessage = "Profile picture URL applied!"
+                                                }
+                                            },
+                                            enabled = profileAvatarUrlInput.isNotBlank()
+                                        ) {
+                                            Text("Apply")
+                                        }
+                                    }
+
                                     OutlinedTextField(
                                         value = profileName,
                                         onValueChange = { profileName = it },
-                                        label = { Text("Channel Name") },
+                                        label = { Text("Channel Name (e.g. shain)") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -477,7 +546,7 @@ fun LocalAdminDashboardScreen(
                                     OutlinedTextField(
                                         value = profileHandle,
                                         onValueChange = { profileHandle = it },
-                                        label = { Text("Handle (e.g. @danieldalen)") },
+                                        label = { Text("Handle (e.g. @shain)") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -485,7 +554,7 @@ fun LocalAdminDashboardScreen(
                                     OutlinedTextField(
                                         value = profileSubs,
                                         onValueChange = { profileSubs = it },
-                                        label = { Text("Subscribers Display (e.g. 48,237)") },
+                                        label = { Text("Total Subscribers Display (e.g. 128,490)") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -511,7 +580,10 @@ fun LocalAdminDashboardScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("Monetized Status Badge", color = colors.textPrimary, fontSize = 14.sp)
+                                        Column {
+                                            Text("Channel Monetization Enabled", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = colors.textPrimary)
+                                            Text("Displays partner badge and monetized metrics", fontSize = 12.sp, color = colors.textSecondary)
+                                        }
                                         Switch(
                                             checked = profileMonetized,
                                             onCheckedChange = { profileMonetized = it }
@@ -530,13 +602,27 @@ fun LocalAdminDashboardScreen(
                                 colors = CardDefaults.cardColors(containerColor = colors.cardBackground)
                             ) {
                                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    Text("Dashboard Statistics (2x2 Grid)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.textPrimary)
-                                    Text("These values appear on the main Dashboard overview tiles.", fontSize = 12.sp, color = colors.textSecondary)
+                                    Text("Home Dashboard Metric Cards", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.textPrimary)
+                                    Text("Modifies the 4 primary rounded cards on the Home Dashboard:", fontSize = 12.sp, color = colors.textSecondary)
+
+                                    Text("Quick Period Label:", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = colors.textPrimary)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        listOf("Last 28 days", "Last 90 days", "Last 365 days", "Lifetime").forEach { p ->
+                                            FilterChip(
+                                                selected = statsPeriod == p,
+                                                onClick = { statsPeriod = p },
+                                                label = { Text(p, fontSize = 11.sp) }
+                                            )
+                                        }
+                                    }
 
                                     OutlinedTextField(
                                         value = statsViews,
                                         onValueChange = { statsViews = it },
-                                        label = { Text("Total Views (e.g. 887.7K)") },
+                                        label = { Text("Views Card (e.g. 2.4k)") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -544,7 +630,7 @@ fun LocalAdminDashboardScreen(
                                     OutlinedTextField(
                                         value = statsWatchTime,
                                         onValueChange = { statsWatchTime = it },
-                                        label = { Text("Watch Time Hours (e.g. 66.2K)") },
+                                        label = { Text("Watch Time Card (e.g. 84.2)") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -552,7 +638,7 @@ fun LocalAdminDashboardScreen(
                                     OutlinedTextField(
                                         value = statsSubs,
                                         onValueChange = { statsSubs = it },
-                                        label = { Text("Subscribers Change (e.g. +39.0K)") },
+                                        label = { Text("Subscribers Card (e.g. -1.0k or +1.2k)") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -560,7 +646,7 @@ fun LocalAdminDashboardScreen(
                                     OutlinedTextField(
                                         value = statsRevenue,
                                         onValueChange = { statsRevenue = it },
-                                        label = { Text("Estimated Revenue (e.g. $1,247.32)") },
+                                        label = { Text("Estimated Revenue Card (e.g. US$8.65)") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -568,7 +654,7 @@ fun LocalAdminDashboardScreen(
                                     OutlinedTextField(
                                         value = statsPeriod,
                                         onValueChange = { statsPeriod = it },
-                                        label = { Text("Period Label (e.g. Last 28 days)") },
+                                        label = { Text("Custom Period Text") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -585,29 +671,18 @@ fun LocalAdminDashboardScreen(
                                 colors = CardDefaults.cardColors(containerColor = colors.cardBackground)
                             ) {
                                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    Text("Analytics Distribution & Chart Generator", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.textPrimary)
-                                    Text(
-                                        text = "Enter a total (e.g. 5,000 views). The algorithm distributes the total across the selected days so daily values add up EXACTLY to your total.",
-                                        fontSize = 12.sp,
-                                        color = colors.textSecondary,
-                                        lineHeight = 16.sp
-                                    )
+                                    Text("Analytics Chart & Audience Generator", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.textPrimary)
+                                    Text("Generates realistic daily graph curves whose points sum up EXACTLY to your target views:", fontSize = 12.sp, color = colors.textSecondary)
 
-                                    Text("Select Date Range:", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = colors.textPrimary)
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        listOf(7, 18, 28, 90).forEach { days ->
-                                            val selected = analyticsDays == days
+                                        listOf(7, 28, 90, 365).forEach { d ->
                                             FilterChip(
-                                                selected = selected,
-                                                onClick = { analyticsDays = days },
-                                                label = { Text("$days Days", fontSize = 12.sp) },
-                                                colors = FilterChipDefaults.filterChipColors(
-                                                    selectedContainerColor = colors.navSelected,
-                                                    selectedLabelColor = Color.White
-                                                )
+                                                selected = analyticsDays == d,
+                                                onClick = { analyticsDays = d },
+                                                label = { Text("$d Days") }
                                             )
                                         }
                                     }
@@ -615,87 +690,78 @@ fun LocalAdminDashboardScreen(
                                     OutlinedTextField(
                                         value = analyticsTotalViewsInput,
                                         onValueChange = { analyticsTotalViewsInput = it },
-                                        label = { Text("Total Target Views (Exact Sum)") },
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        label = { Text("Target Total Views (Exact Sum)") },
                                         singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         modifier = Modifier.fillMaxWidth()
                                     )
 
                                     OutlinedTextField(
                                         value = analyticsWatchHoursInput,
                                         onValueChange = { analyticsWatchHoursInput = it },
-                                        label = { Text("Estimated Watch Time (Hours)") },
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                        label = { Text("Target Total Watch Time (Hours)") },
                                         singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                         modifier = Modifier.fillMaxWidth()
                                     )
 
                                     OutlinedTextField(
                                         value = analyticsRevenueDollarsInput,
                                         onValueChange = { analyticsRevenueDollarsInput = it },
-                                        label = { Text("Estimated Revenue ($)") },
+                                        label = { Text("Target Estimated Revenue ($)") },
+                                        singleLine = true,
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = analyticsMonthlyAudienceInput,
+                                        onValueChange = { analyticsMonthlyAudienceInput = it },
+                                        label = { Text("Community Monthly Audience (e.g. 39.6k)") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
 
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Button(
-                                            onClick = { recalculateDistribution() },
-                                            modifier = Modifier.weight(1f),
-                                            colors = ButtonDefaults.buttonColors(containerColor = colors.chipBackground)
+                                    if (generatedViewsDistribution.isNotEmpty()) {
+                                        val calculatedSum = generatedViewsDistribution.sum().toLong()
+                                        Surface(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            color = colors.chipBackground,
+                                            shape = RoundedCornerShape(10.dp)
                                         ) {
-                                            Icon(Icons.Default.Refresh, contentDescription = null, tint = colors.textPrimary, modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text("Regenerate Variance", color = colors.textPrimary, fontSize = 12.sp)
-                                        }
-                                    }
+                                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text("Mathematical Sum:", fontSize = 12.sp, color = colors.textSecondary)
+                                                    Text(
+                                                        text = "$calculatedSum views",
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 13.sp,
+                                                        color = Color(0xFF2E7D32)
+                                                    )
+                                                }
 
-                                    // Exact Sum Verification Banner
-                                    val currentSum = generatedViewsDistribution.sum().toLong()
-                                    val targetTotal = analyticsTotalViewsInput.toLongOrNull() ?: 0L
-                                    val isMatch = currentSum == targetTotal
-
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = if (isMatch) Color(0x334CAF50) else Color(0x33FF9800)
-                                        )
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(12.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(if (isMatch) "✓ Exact Sum Match:" else "Sum:", fontWeight = FontWeight.Bold, color = colors.textPrimary, fontSize = 13.sp)
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = "$currentSum / $targetTotal views across $analyticsDays days",
-                                                color = if (isMatch) Color(0xFF4CAF50) else Color(0xFFFF9800),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 13.sp
-                                            )
-                                        }
-                                    }
-
-                                    // Daily Distribution Sparkline / Preview Bar
-                                    Text("Daily Breakdown Preview:", fontSize = 12.sp, color = colors.textSecondary)
-                                    LazyRow(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        items(generatedViewsDistribution.size) { index ->
-                                            val dayVal = generatedViewsDistribution[index].toLong()
-                                            Column(
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                modifier = Modifier
-                                                    .background(colors.chipBackground, RoundedCornerShape(6.dp))
-                                                    .padding(horizontal = 6.dp, vertical = 4.dp)
-                                            ) {
-                                                Text("D${index + 1}", fontSize = 10.sp, color = colors.textSecondary)
-                                                Text("$dayVal", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                                                val maxBar = (generatedViewsDistribution.maxOrNull() ?: 1f).coerceAtLeast(1f)
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(36.dp),
+                                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                                    verticalAlignment = Alignment.Bottom
+                                                ) {
+                                                    generatedViewsDistribution.take(30).forEach { pt ->
+                                                        val frac = (pt / maxBar).coerceIn(0.1f, 1f)
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .weight(1f)
+                                                                .fillMaxHeight(frac)
+                                                                .background(colors.navSelected, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -706,60 +772,71 @@ fun LocalAdminDashboardScreen(
 
                     AdminSectionTab.VIDEOS -> {
                         item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    FilterChip(
-                                        selected = selectedVideoTab == ContentType.VIDEO,
-                                        onClick = { selectedVideoTab = ContentType.VIDEO },
-                                        label = { Text("Videos (${StudioRepository.contentVideos.size})") }
-                                    )
-                                    FilterChip(
-                                        selected = selectedVideoTab == ContentType.SHORT,
-                                        onClick = { selectedVideoTab = ContentType.SHORT },
-                                        label = { Text("Shorts (${StudioRepository.contentShorts.size})") }
-                                    )
-                                }
-
-                                Button(
-                                    onClick = {
-                                        videoToEdit = VideoItem(
-                                            id = "custom_${System.currentTimeMillis()}",
-                                            title = "",
-                                            type = selectedVideoTab,
-                                            duration = if (selectedVideoTab == ContentType.SHORT) "0:30" else "8:45",
-                                            publishedTimeAgo = "Just now",
-                                            views = 1000L,
-                                            likes = 80L,
-                                            comments = 12L
-                                        )
-                                        showVideoDialog = true
-                                    },
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = colors.navSelected)
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Add Item", color = Color.White, fontSize = 12.sp)
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        items(VideoManagementTab.values()) { vTab ->
+                                            val count = when (vTab) {
+                                                VideoManagementTab.VIDEOS -> StudioRepository.contentVideos.size
+                                                VideoManagementTab.SHORTS -> StudioRepository.contentShorts.size
+                                                VideoManagementTab.LIVE -> StudioRepository.contentLiveStreams.size
+                                                VideoManagementTab.DASHBOARD -> StudioRepository.latestPublishedContent.size
+                                            }
+                                            FilterChip(
+                                                selected = selectedVideoCategory == vTab,
+                                                onClick = { selectedVideoCategory = vTab },
+                                                label = { Text("${vTab.label} ($count)", fontSize = 12.sp) }
+                                            )
+                                        }
+                                    }
+
+                                    Button(
+                                        onClick = {
+                                            val cType = when (selectedVideoCategory) {
+                                                VideoManagementTab.SHORTS -> ContentType.SHORT
+                                                VideoManagementTab.LIVE -> ContentType.LIVE
+                                                else -> ContentType.VIDEO
+                                            }
+                                            videoToEdit = VideoItem(
+                                                id = "custom_${System.currentTimeMillis()}",
+                                                title = "",
+                                                type = cType,
+                                                duration = if (cType == ContentType.SHORT) "0:30" else if (cType == ContentType.LIVE) "45:00" else "8:45",
+                                                publishedTimeAgo = "Just now",
+                                                views = 1200L,
+                                                likes = 95L,
+                                                comments = 14L
+                                            )
+                                            showVideoDialog = true
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = colors.navSelected)
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Add", color = Color.White, fontSize = 12.sp)
+                                    }
                                 }
                             }
                         }
 
-                        val activeList = if (selectedVideoTab == ContentType.VIDEO) {
-                            StudioRepository.contentVideos
-                        } else {
-                            StudioRepository.contentShorts
+                        val activeList = when (selectedVideoCategory) {
+                            VideoManagementTab.VIDEOS -> StudioRepository.contentVideos
+                            VideoManagementTab.SHORTS -> StudioRepository.contentShorts
+                            VideoManagementTab.LIVE -> StudioRepository.contentLiveStreams
+                            VideoManagementTab.DASHBOARD -> StudioRepository.latestPublishedContent
                         }
 
                         if (activeList.isEmpty()) {
                             item {
-                                Text("No items found. Tap 'Add Item' above to create one.", color = colors.textSecondary, fontSize = 13.sp)
+                                Text("No items in this section. Tap 'Add' above to create one.", color = colors.textSecondary, fontSize = 13.sp)
                             }
                         } else {
-                            items(activeList) { video ->
+                            items(activeList) { item ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(12.dp),
@@ -771,25 +848,26 @@ fun LocalAdminDashboardScreen(
                                             .padding(12.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        // Thumbnail preview
                                         Box(
                                             modifier = Modifier
-                                                .size(width = 64.dp, height = if (video.type == ContentType.SHORT) 80.dp else 42.dp)
+                                                .size(width = 64.dp, height = if (item.type == ContentType.SHORT) 80.dp else 44.dp)
                                                 .clip(RoundedCornerShape(6.dp))
-                                                .background(Color(0xFF2C2C2C)),
+                                                .background(Color(0xFF212121)),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            if (!video.thumbnailUri.isNullOrBlank()) {
+                                            if (!item.thumbnailUri.isNullOrBlank()) {
                                                 AsyncImage(
-                                                    model = video.thumbnailUri,
+                                                    model = item.thumbnailUri,
                                                     contentDescription = null,
                                                     modifier = Modifier.fillMaxSize(),
                                                     contentScale = ContentScale.Crop
                                                 )
                                             } else {
                                                 Text(
-                                                    text = if (video.type == ContentType.SHORT) "🩳" else "▶",
-                                                    fontSize = 18.sp
+                                                    text = if (item.type == ContentType.SHORT) "⚡ Short" else if (item.type == ContentType.LIVE) "🔴 Live" else "▶ Video",
+                                                    color = Color.White,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold
                                                 )
                                             }
                                         }
@@ -798,35 +876,41 @@ fun LocalAdminDashboardScreen(
 
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = video.title.ifBlank { "Untitled" },
+                                                text = item.title.ifBlank { "Untitled" },
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 14.sp,
-                                                color = colors.textPrimary,
-                                                maxLines = 1
+                                                fontSize = 13.sp,
+                                                maxLines = 2,
+                                                color = colors.textPrimary
                                             )
+                                            Spacer(modifier = Modifier.height(2.dp))
                                             Text(
-                                                text = "${video.views} views · ${video.duration} · ${video.publishedTimeAgo}",
-                                                fontSize = 12.sp,
+                                                text = "${item.views} views • ${item.publishedTimeAgo}",
+                                                fontSize = 11.sp,
                                                 color = colors.textSecondary
                                             )
                                             Text(
-                                                text = "${video.likes} likes · ${video.comments} comments",
+                                                text = "Likes: ${item.likes} • Comments: ${item.comments}",
                                                 fontSize = 11.sp,
                                                 color = colors.textSecondary
                                             )
                                         }
 
-                                        IconButton(onClick = {
-                                            videoToEdit = video
-                                            showVideoDialog = true
-                                        }) {
-                                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = colors.textPrimary, modifier = Modifier.size(18.dp))
-                                        }
-
-                                        IconButton(onClick = {
-                                            videoToDelete = video
-                                        }) {
-                                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFFF5252), modifier = Modifier.size(18.dp))
+                                        Row {
+                                            IconButton(
+                                                onClick = {
+                                                    videoToEdit = item
+                                                    showVideoDialog = true
+                                                }
+                                            ) {
+                                                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = colors.textSecondary, modifier = Modifier.size(18.dp))
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    videoToDelete = item
+                                                }
+                                            ) {
+                                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFFF5252), modifier = Modifier.size(18.dp))
+                                            }
                                         }
                                     }
                                 }
@@ -842,8 +926,23 @@ fun LocalAdminDashboardScreen(
                                 colors = CardDefaults.cardColors(containerColor = colors.cardBackground)
                             ) {
                                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    Text("Monetization & Partner Status Editor", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.textPrimary)
-                                    Text("Updates the Earn screen and channel partner indicators immediately.", fontSize = 12.sp, color = colors.textSecondary)
+                                    Text("Monetization & Payout Editor", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.textPrimary)
+                                    Text("Controls Partner status and real-time Payout numbers on the Earn screen:", fontSize = 12.sp, color = colors.textSecondary)
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            earnPayoutHeadline = "A payment is headed your way.\nExpect a payment 21–26 October"
+                                            earnPayoutAmount = "$355.13"
+                                            earnPayoutMonthlyMonth = "October earnings"
+                                            earnPayoutMonthlyAmount = "$112.19"
+                                            earnPayoutMinimumText = "Payment minimum: $100.00"
+                                            earnIsMonetized = true
+                                            snackbarMessage = "Applied official reference payout ($355.13)!"
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("Apply Reference Payout ($355.13, Oct 21–26)")
+                                    }
 
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -852,7 +951,7 @@ fun LocalAdminDashboardScreen(
                                     ) {
                                         Column {
                                             Text("Partner Program Monetization", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = colors.textPrimary)
-                                            Text(if (earnIsMonetized) "Active (Partner Approved)" else "Inactive (Eligibility Milestones shown)", fontSize = 12.sp, color = colors.textSecondary)
+                                            Text(if (earnIsMonetized) "Active (Shows Payout & Ads)" else "Inactive (Shows Milestones)", fontSize = 12.sp, color = colors.textSecondary)
                                         }
                                         Switch(
                                             checked = earnIsMonetized,
@@ -861,8 +960,50 @@ fun LocalAdminDashboardScreen(
                                     }
 
                                     HorizontalDivider(color = colors.divider)
+                                    Text("Payout & Earnings Details (Earn Tab):", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = colors.textPrimary)
 
-                                    Text("Milestone / Progress Figures:", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = colors.textPrimary)
+                                    OutlinedTextField(
+                                        value = earnPayoutHeadline,
+                                        onValueChange = { earnPayoutHeadline = it },
+                                        label = { Text("Payout Headline Banner") },
+                                        maxLines = 3,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = earnPayoutAmount,
+                                        onValueChange = { earnPayoutAmount = it },
+                                        label = { Text("Total Payout Amount (e.g. $355.13)") },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = earnPayoutMonthlyMonth,
+                                        onValueChange = { earnPayoutMonthlyMonth = it },
+                                        label = { Text("Monthly Earnings Month (e.g. October earnings)") },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = earnPayoutMonthlyAmount,
+                                        onValueChange = { earnPayoutMonthlyAmount = it },
+                                        label = { Text("Monthly Earnings Amount (e.g. $112.19)") },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = earnPayoutMinimumText,
+                                        onValueChange = { earnPayoutMinimumText = it },
+                                        label = { Text("Payment Minimum Text (e.g. Payment minimum: $100.00)") },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    HorizontalDivider(color = colors.divider)
+                                    Text("Milestone / Progress Figures (When not monetized):", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = colors.textPrimary)
 
                                     OutlinedTextField(
                                         value = earnWatchHours,
@@ -875,7 +1016,7 @@ fun LocalAdminDashboardScreen(
                                     OutlinedTextField(
                                         value = earnReqWatchHours,
                                         onValueChange = { earnReqWatchHours = it },
-                                        label = { Text("Required Watch Hours (e.g. 3,000 or 4,000)") },
+                                        label = { Text("Required Watch Hours (e.g. 3,000)") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -883,7 +1024,7 @@ fun LocalAdminDashboardScreen(
                                     OutlinedTextField(
                                         value = earnShortsViews,
                                         onValueChange = { earnShortsViews = it },
-                                        label = { Text("Qualified Shorts Views (e.g. 3.2M or 730)") },
+                                        label = { Text("Qualified Shorts Views (e.g. 3.2M)") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -891,7 +1032,7 @@ fun LocalAdminDashboardScreen(
                                     OutlinedTextField(
                                         value = earnReqShortsViews,
                                         onValueChange = { earnReqShortsViews = it },
-                                        label = { Text("Required Shorts Views (e.g. 3.0M or 30 lakh)") },
+                                        label = { Text("Required Shorts Views (e.g. 3.0M)") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -912,7 +1053,6 @@ fun LocalAdminDashboardScreen(
         }
     }
 
-    // --- Add / Edit Video Modal Dialog ---
     if (showVideoDialog && videoToEdit != null) {
         val currentVideo = videoToEdit!!
         var editTitle by remember { mutableStateOf(currentVideo.title) }
@@ -923,7 +1063,9 @@ fun LocalAdminDashboardScreen(
         var editLikes by remember { mutableStateOf(currentVideo.likes.toString()) }
         var editComments by remember { mutableStateOf(currentVideo.comments.toString()) }
         var editThumbnailUri by remember { mutableStateOf(currentVideo.thumbnailUri) }
-        var editDescription by remember { mutableStateOf(currentVideo.description) }
+        var editThumbnailUrlInput by remember { mutableStateOf("") }
+        var editVisibility by remember { mutableStateOf("Public") }
+        var editShowOnDashboard by remember { mutableStateOf(true) }
 
         val videoThumbnailPickerLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickVisualMedia()
@@ -938,7 +1080,7 @@ fun LocalAdminDashboardScreen(
             containerColor = colors.cardBackground,
             title = {
                 Text(
-                    text = if (currentVideo.id.startsWith("custom_") && currentVideo.title.isBlank()) "Add New Demo Item" else "Edit Video Item",
+                    text = if (currentVideo.id.startsWith("custom_") && currentVideo.title.isBlank()) "Add New Video Item" else "Edit Video Item",
                     fontWeight = FontWeight.Bold,
                     color = colors.textPrimary
                 )
@@ -949,14 +1091,14 @@ fun LocalAdminDashboardScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     item {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             FilterChip(
                                 selected = editType == ContentType.VIDEO,
                                 onClick = {
                                     editType = ContentType.VIDEO
                                     if (editDuration == "0:30") editDuration = "8:45"
                                 },
-                                label = { Text("Regular Video") }
+                                label = { Text("Video") }
                             )
                             FilterChip(
                                 selected = editType == ContentType.SHORT,
@@ -964,7 +1106,15 @@ fun LocalAdminDashboardScreen(
                                     editType = ContentType.SHORT
                                     if (editDuration == "8:45") editDuration = "0:30"
                                 },
-                                label = { Text("Vertical Short") }
+                                label = { Text("Short") }
+                            )
+                            FilterChip(
+                                selected = editType == ContentType.LIVE,
+                                onClick = {
+                                    editType = ContentType.LIVE
+                                    editDuration = "45:12"
+                                },
+                                label = { Text("Live") }
                             )
                         }
                     }
@@ -973,39 +1123,41 @@ fun LocalAdminDashboardScreen(
                         OutlinedTextField(
                             value = editTitle,
                             onValueChange = { editTitle = it },
-                            label = { Text("Title") },
+                            label = { Text("Video Title") },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
 
                     item {
-                        OutlinedTextField(
-                            value = editDuration,
-                            onValueChange = { editDuration = it },
-                            label = { Text("Duration (e.g. 8:45 or 0:30)") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = editDuration,
+                                onValueChange = { editDuration = it },
+                                label = { Text("Duration") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = editPublishedAgo,
+                                onValueChange = { editPublishedAgo = it },
+                                label = { Text("Published") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
 
                     item {
-                        OutlinedTextField(
-                            value = editPublishedAgo,
-                            onValueChange = { editPublishedAgo = it },
-                            label = { Text("Published Time (e.g. 1 day ago)") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    item {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             OutlinedTextField(
                                 value = editViews,
                                 onValueChange = { editViews = it },
                                 label = { Text("Views") },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
                                 modifier = Modifier.weight(1f)
                             )
                             OutlinedTextField(
@@ -1013,64 +1165,100 @@ fun LocalAdminDashboardScreen(
                                 onValueChange = { editLikes = it },
                                 label = { Text("Likes") },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = editComments,
+                                onValueChange = { editComments = it },
+                                label = { Text("Comments") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f)
                             )
                         }
                     }
 
                     item {
-                        OutlinedTextField(
-                            value = editComments,
-                            onValueChange = { editComments = it },
-                            label = { Text("Comments") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    item {
-                        OutlinedTextField(
-                            value = editDescription,
-                            onValueChange = { editDescription = it },
-                            label = { Text("Description") },
-                            maxLines = 2,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    item {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(Color(0xFF2C2C2C)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (!editThumbnailUri.isNullOrBlank()) {
-                                    AsyncImage(
-                                        model = editThumbnailUri,
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else {
-                                    Text("🖼")
-                                }
+                        Text("Visibility:", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = colors.textPrimary)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("Public", "Unlisted", "Private").forEach { vis ->
+                                FilterChip(
+                                    selected = editVisibility == vis,
+                                    onClick = { editVisibility = vis },
+                                    label = { Text(vis) }
+                                )
                             }
-                            Spacer(modifier = Modifier.width(10.dp))
+                        }
+                    }
+
+                    item {
+                        Text("Thumbnail Source:", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = colors.textPrimary)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Button(
                                 onClick = {
                                     videoThumbnailPickerLauncher.launch(
                                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                     )
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = colors.chipBackground)
+                                colors = ButtonDefaults.buttonColors(containerColor = colors.chipBackground),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                             ) {
-                                Text("Choose Thumbnail", color = colors.textPrimary, fontSize = 12.sp)
+                                Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = colors.textPrimary, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Pick Gallery", color = colors.textPrimary, fontSize = 11.sp)
                             }
+
+                            if (!editThumbnailUri.isNullOrBlank()) {
+                                TextButton(
+                                    onClick = { editThumbnailUri = null },
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Text("Clear", color = Color(0xFFFF5252), fontSize = 11.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = editThumbnailUrlInput,
+                                onValueChange = { editThumbnailUrlInput = it },
+                                label = { Text("Or Thumbnail URL") },
+                                placeholder = { Text("https://...") },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Button(
+                                onClick = {
+                                    if (editThumbnailUrlInput.isNotBlank()) {
+                                        editThumbnailUri = editThumbnailUrlInput.trim()
+                                    }
+                                },
+                                enabled = editThumbnailUrlInput.isNotBlank()
+                            ) {
+                                Text("Set")
+                            }
+                        }
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Show on Home Dashboard", fontSize = 12.sp, color = colors.textPrimary)
+                            Switch(
+                                checked = editShowOnDashboard,
+                                onCheckedChange = { editShowOnDashboard = it }
+                            )
                         }
                     }
                 }
@@ -1078,56 +1266,58 @@ fun LocalAdminDashboardScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        if (!checkAccessOrLock()) {
-                            showVideoDialog = false
-                            return@Button
-                        }
-                        val newItem = currentVideo.copy(
-                            title = editTitle.ifBlank { "Untitled ${editType.name}" },
+                        val updated = currentVideo.copy(
+                            title = editTitle.trim().ifBlank { "Untitled Video" },
                             type = editType,
-                            duration = editDuration.ifBlank { if (editType == ContentType.SHORT) "0:30" else "5:00" },
-                            publishedTimeAgo = editPublishedAgo.ifBlank { "Just now" },
+                            duration = editDuration.trim().ifBlank { if (editType == ContentType.SHORT) "0:30" else "5:00" },
+                            publishedTimeAgo = editPublishedAgo.trim().ifBlank { "Just now" },
                             views = editViews.toLongOrNull() ?: 0L,
                             likes = editLikes.toLongOrNull() ?: 0L,
                             comments = editComments.toLongOrNull() ?: 0L,
-                            thumbnailUri = editThumbnailUri,
-                            description = editDescription
+                            thumbnailUri = editThumbnailUri
                         )
-                        LocalAdminStore.addOrUpdateVideo(newItem)
+                        LocalAdminStore.addOrUpdateVideo(updated, showOnDashboard = editShowOnDashboard)
                         showVideoDialog = false
-                        snackbarMessage = "Saved '${newItem.title}'!"
+                        videoToEdit = null
+                        snackbarMessage = "Video item '${updated.title}' saved!"
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = colors.navSelected)
                 ) {
-                    Text("Save Video", color = Color.White)
+                    Text("Save", color = Color.White)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showVideoDialog = false }) {
-                    Text("Cancel", color = colors.textSecondary)
+                TextButton(onClick = {
+                    showVideoDialog = false
+                    videoToEdit = null
+                }) {
+                    Text("Cancel")
                 }
             }
         )
     }
 
-    // --- Delete Confirmation Dialog ---
     if (videoToDelete != null) {
-        val target = videoToDelete!!
+        val toDel = videoToDelete!!
         AlertDialog(
             onDismissRequest = { videoToDelete = null },
             containerColor = colors.cardBackground,
-            title = { Text("Delete '${target.title}'?", fontWeight = FontWeight.Bold, color = colors.textPrimary) },
-            text = { Text("Are you sure you want to remove this demo video? This action will update your content lists immediately.", color = colors.textSecondary) },
+            title = {
+                Text("Delete Video Item?", fontWeight = FontWeight.Bold, color = colors.textPrimary)
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete '${toDel.title}'? This action will remove it from local demo lists immediately.",
+                    color = colors.textSecondary,
+                    fontSize = 13.sp
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
-                        if (!checkAccessOrLock()) {
-                            videoToDelete = null
-                            return@Button
-                        }
-                        LocalAdminStore.deleteVideo(target.id, target.type == ContentType.SHORT)
+                        LocalAdminStore.deleteVideo(toDel.id, toDel.type)
+                        snackbarMessage = "Deleted '${toDel.title}'"
                         videoToDelete = null
-                        snackbarMessage = "Deleted '${target.title}'"
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5252))
                 ) {
@@ -1136,54 +1326,49 @@ fun LocalAdminDashboardScreen(
             },
             dismissButton = {
                 TextButton(onClick = { videoToDelete = null }) {
-                    Text("Cancel", color = colors.textSecondary)
+                    Text("Cancel")
                 }
             }
         )
     }
 
-    // --- Reset Demo Data Confirmation Dialog ---
     if (showResetConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showResetConfirmDialog = false },
             containerColor = colors.cardBackground,
-            title = { Text("Reset to Default Demo Data?", fontWeight = FontWeight.Bold, color = colors.textPrimary) },
+            title = {
+                Text("Reset Demo Customizations?", fontWeight = FontWeight.Bold, color = colors.textPrimary)
+            },
             text = {
                 Text(
-                    text = "This will clear all local customizations on this device and restore the original YouTube Studio clone profile, statistics, videos, and monetization defaults.",
-                    color = colors.textSecondary
+                    text = "This will clear all locally customized channel names, metrics, charts, and video items on this device, reverting back to the default demo state.",
+                    color = colors.textSecondary,
+                    fontSize = 13.sp
                 )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        if (!checkAccessOrLock()) {
-                            showResetConfirmDialog = false
-                            return@Button
-                        }
                         LocalAdminStore.resetToDefaultDemoData(context)
-                        // Reset local view states
-                        profileName = StudioRepository.danielProfile.name
-                        profileHandle = StudioRepository.danielProfile.handle
-                        profileSubs = StudioRepository.danielProfile.subscribersCount
-                        profileEmail = StudioRepository.danielProfile.email
-                        profileAvatarUri = null
+                        showResetConfirmDialog = false
+                        snackbarMessage = "Reset all data back to default demo state!"
+                        profileName = StudioRepository.currentProfile.name
+                        profileHandle = StudioRepository.currentProfile.handle
+                        profileSubs = StudioRepository.currentProfile.subscribersCount
                         statsViews = StudioRepository.dashboardViews
                         statsWatchTime = StudioRepository.dashboardWatchTime
                         statsSubs = StudioRepository.dashboardSubscribers
                         statsRevenue = StudioRepository.dashboardRevenue
-                        earnIsMonetized = true
-                        showResetConfirmDialog = false
-                        snackbarMessage = "All demo data reset to original defaults."
+                        earnPayoutAmount = StudioRepository.payoutAmount
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800))
                 ) {
-                    Text("Reset All", color = Color.White)
+                    Text("Reset Now", color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetConfirmDialog = false }) {
-                    Text("Cancel", color = colors.textSecondary)
+                    Text("Cancel")
                 }
             }
         )

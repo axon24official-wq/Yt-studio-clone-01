@@ -142,7 +142,8 @@ fun StudioApp() {
                     StudioHeader(
                         onAvatarClick = { isAccountScreenOpen = true },
                         onCreateClick = { showCreateSheet = true },
-                        onNotificationClick = { showNotificationsDialog = true }
+                        onNotificationClick = { showNotificationsDialog = true },
+                        onAdminClick = { isAdminPanelOpen = true }
                     )
                 }
             }
@@ -212,7 +213,11 @@ fun StudioApp() {
             } else if (isAccountScreenOpen) {
                 AccountScreen(
                     onBackClick = { isAccountScreenOpen = false },
-                    onChannelSelected = { }
+                    onChannelSelected = { },
+                    onOpenAdminPanel = {
+                        isAccountScreenOpen = false
+                        isAdminPanelOpen = true
+                    }
                 )
             } else {
                 when (currentTab) {

@@ -29,7 +29,8 @@ import com.example.ui.theme.*
 fun StudioHeader(
     onAvatarClick: () -> Unit,
     onCreateClick: () -> Unit = {},
-    onNotificationClick: () -> Unit = {}
+    onNotificationClick: () -> Unit = {},
+    onAdminClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -48,7 +49,7 @@ fun StudioHeader(
             // YouTube Studio Logo and Wordmark
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.testTag("studio_brand_logo")
+                modifier = Modifier.testTag("studio_brand_logo").clickable { onAdminClick() }
             ) {
                 // YouTube Red Play Button Badge
                 Box(

@@ -76,16 +76,24 @@ object LocalAdminStore {
     private const val KEY_ANALYTICS_SUBS_TREND = "analytics_subs_trend"
     private const val KEY_ANALYTICS_REV_TREND = "analytics_rev_trend"
 
-    // Videos Keys
+    // Videos & Content Keys
     private const val KEY_VIDEOS_JSON = "custom_videos_json"
     private const val KEY_SHORTS_JSON = "custom_shorts_json"
+    private const val KEY_LIVE_VIDEOS_JSON = "custom_live_videos_json"
+    private const val KEY_DASHBOARD_VIDEOS_JSON = "custom_dashboard_videos_json"
 
-    // Monetization Keys
+    // Monetization & Payout Keys
     private const val KEY_MONETIZATION_WATCH_HOURS = "monetization_watch_hours"
     private const val KEY_MONETIZATION_REQ_WATCH_HOURS = "monetization_req_watch_hours"
     private const val KEY_MONETIZATION_SHORTS_VIEWS = "monetization_shorts_views"
     private const val KEY_MONETIZATION_REQ_SHORTS_VIEWS = "monetization_req_shorts_views"
     private const val KEY_MONETIZATION_VIDEO_UPLOADS = "monetization_video_uploads"
+    private const val KEY_PAYOUT_HEADLINE = "payout_headline"
+    private const val KEY_PAYOUT_AMOUNT = "payout_amount"
+    private const val KEY_PAYOUT_MONTHLY_MONTH = "payout_monthly_month"
+    private const val KEY_PAYOUT_MONTHLY_AMOUNT = "payout_monthly_amount"
+    private const val KEY_PAYOUT_MINIMUM_TEXT = "payout_minimum_text"
+    private const val KEY_MONTHLY_AUDIENCE = "analytics_monthly_audience"
 
     fun init(context: Context) {
         val appCtx = context.applicationContext
@@ -476,7 +484,7 @@ object LocalAdminStore {
     fun saveVideos(videos: List<VideoItem>) {
         StudioRepository.contentVideos = videos
         val regular = videos.filter { it.type == ContentType.VIDEO }
-        if (regular.isNotEmpty()) {
+        if (regular.isNotEmpty() && StudioRepository.latestPublishedContent.isEmpty()) {
             StudioRepository.dashboardLatestVideo = regular.first()
         }
         val json = videosToJson(videos)
@@ -495,39 +503,99 @@ object LocalAdminStore {
             ?.apply()
     }
 
-    fun addOrUpdateVideo(item: VideoItem) {
-        if (item.type == ContentType.SHORT) {
-            val current = StudioRepository.contentShorts.toMutableList()
-            val existingIndex = current.indexOfFirst { it.id == item.id }
-            if (existingIndex >= 0) {
-                current[existingIndex] = item
-            } else {
-                current.add(0, item)
+    fun saveLiveStreams(liveStreams: List<VideoItem>) {
+        StudioRepository.contentLiveStreams = liveStreams
+        val json = videosToJson(liveStreams)
+        prefs?.edit()
+            ?.putString(KEY_LIVE_VIDEOS_JSON, json)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+    }
+
+    fun saveDashboardVideos(videos: List<VideoItem>) {
+        StudioRepository.latestPublishedContent = videos
+        if (videos.isNotEmpty()) {
+            StudioRepository.dashboardLatestVideo = videos.first()
+        }
+        val json = videosToJson(videos)
+        prefs?.edit()
+            ?.putString(KEY_DASHBOARD_VIDEOS_JSON, json)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+    }
+
+    fun addOrUpdateVideo(item: VideoItem, showOnDashboard: Boolean = false) {
+        when (item.type) {
+            ContentType.SHORT -> {
+                val current = StudioRepository.contentShorts.toMutableList()
+                val existingIndex = current.indexOfFirst { it.id == item.id }
+                if (existingIndex >= 0) {
+                    current[existingIndex] = item
+                } else {
+                    current.add(0, item)
+                }
+                saveShorts(current)
             }
-            saveShorts(current)
-        } else {
-            val current = StudioRepository.contentVideos.toMutableList()
-            val existingIndex = current.indexOfFirst { it.id == item.id }
-            if (existingIndex >= 0) {
-                current[existingIndex] = item
-            } else {
-                current.add(0, item)
+            ContentType.LIVE -> {
+                val current = StudioRepository.contentLiveStreams.toMutableList()
+                val existingIndex = current.indexOfFirst { it.id == item.id }
+                if (existingIndex >= 0) {
+                    current[existingIndex] = item
+                } else {
+                    current.add(0, item)
+                }
+                saveLiveStreams(current)
             }
-            saveVideos(current)
+            else -> {
+                val current = StudioRepository.contentVideos.toMutableList()
+                val existingIndex = current.indexOfFirst { it.id == item.id }
+                if (existingIndex >= 0) {
+                    current[existingIndex] = item
+                } else {
+                    current.add(0, item)
+                }
+                saveVideos(current)
+            }
+        }
+
+        if (showOnDashboard) {
+            val dash = StudioRepository.latestPublishedContent.toMutableList()
+            val existing = dash.indexOfFirst { it.id == item.id }
+            if (existing >= 0) {
+                dash[existing] = item
+            } else {
+                dash.add(0, item)
+            }
+            saveDashboardVideos(dash)
+        }
+    }
+
+    fun deleteVideo(id: String, type: ContentType) {
+        when (type) {
+            ContentType.SHORT -> {
+                val updated = StudioRepository.contentShorts.filter { it.id != id }
+                saveShorts(updated)
+            }
+            ContentType.LIVE -> {
+                val updated = StudioRepository.contentLiveStreams.filter { it.id != id }
+                saveLiveStreams(updated)
+            }
+            else -> {
+                val updated = StudioRepository.contentVideos.filter { it.id != id }
+                saveVideos(updated)
+            }
+        }
+        val updatedDash = StudioRepository.latestPublishedContent.filter { it.id != id }
+        if (updatedDash.size != StudioRepository.latestPublishedContent.size) {
+            saveDashboardVideos(updatedDash)
         }
     }
 
     fun deleteVideo(id: String, isShort: Boolean) {
-        if (isShort) {
-            val updated = StudioRepository.contentShorts.filter { it.id != id }
-            saveShorts(updated)
-        } else {
-            val updated = StudioRepository.contentVideos.filter { it.id != id }
-            saveVideos(updated)
-        }
+        deleteVideo(id, if (isShort) ContentType.SHORT else ContentType.VIDEO)
     }
 
-    // --- Monetization Management ---
+    // --- Monetization & Payout Management ---
 
     fun saveMonetization(
         isMonetized: Boolean,
@@ -557,6 +625,39 @@ object LocalAdminStore {
         StudioRepository.currentProfile = StudioRepository.currentProfile.copy(isMonetized = isMonetized)
 
         Log.d(TAG, "Saved local monetization: isMonetized=$isMonetized, watchHours=$watchHours")
+    }
+
+    fun savePayout(
+        headline: String,
+        amount: String,
+        monthlyMonth: String,
+        monthlyAmount: String,
+        minimumText: String
+    ) {
+        prefs?.edit()
+            ?.putString(KEY_PAYOUT_HEADLINE, headline)
+            ?.putString(KEY_PAYOUT_AMOUNT, amount)
+            ?.putString(KEY_PAYOUT_MONTHLY_MONTH, monthlyMonth)
+            ?.putString(KEY_PAYOUT_MONTHLY_AMOUNT, monthlyAmount)
+            ?.putString(KEY_PAYOUT_MINIMUM_TEXT, minimumText)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+
+        StudioRepository.payoutHeadline = headline
+        StudioRepository.payoutAmount = amount
+        StudioRepository.payoutMonthlyMonth = monthlyMonth
+        StudioRepository.payoutMonthlyAmount = monthlyAmount
+        StudioRepository.payoutMinimumText = minimumText
+        Log.d(TAG, "Saved local payout: amount=$amount, month=$monthlyMonth")
+    }
+
+    fun saveMonthlyAudience(monthlyAudience: String) {
+        prefs?.edit()
+            ?.putString(KEY_MONTHLY_AUDIENCE, monthlyAudience)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+
+        StudioRepository.communityMonthlyAudience = monthlyAudience
     }
 
     // --- Reset Demo Data ---
@@ -646,12 +747,35 @@ object LocalAdminStore {
                 }
             }
 
-            // 5. Monetization
+            // 5. Monetization & Payout
             p.getString(KEY_MONETIZATION_WATCH_HOURS, null)?.let { StudioRepository.monetizationWatchHours = it }
             p.getString(KEY_MONETIZATION_REQ_WATCH_HOURS, null)?.let { StudioRepository.monetizationRequiredWatchHours = it }
             p.getString(KEY_MONETIZATION_SHORTS_VIEWS, null)?.let { StudioRepository.monetizationShortsViews = it }
             p.getString(KEY_MONETIZATION_REQ_SHORTS_VIEWS, null)?.let { StudioRepository.monetizationRequiredShortsViews = it }
             p.getString(KEY_MONETIZATION_VIDEO_UPLOADS, null)?.let { StudioRepository.monetizationVideoUploads = it }
+            p.getString(KEY_PAYOUT_HEADLINE, null)?.let { StudioRepository.payoutHeadline = it }
+            p.getString(KEY_PAYOUT_AMOUNT, null)?.let { StudioRepository.payoutAmount = it }
+            p.getString(KEY_PAYOUT_MONTHLY_MONTH, null)?.let { StudioRepository.payoutMonthlyMonth = it }
+            p.getString(KEY_PAYOUT_MONTHLY_AMOUNT, null)?.let { StudioRepository.payoutMonthlyAmount = it }
+            p.getString(KEY_PAYOUT_MINIMUM_TEXT, null)?.let { StudioRepository.payoutMinimumText = it }
+            p.getString(KEY_MONTHLY_AUDIENCE, null)?.let { StudioRepository.communityMonthlyAudience = it }
+
+            val liveJson = p.getString(KEY_LIVE_VIDEOS_JSON, null)
+            if (!liveJson.isNullOrBlank()) {
+                val list = jsonToVideos(liveJson)
+                if (list.isNotEmpty()) {
+                    StudioRepository.contentLiveStreams = list
+                }
+            }
+
+            val dashJson = p.getString(KEY_DASHBOARD_VIDEOS_JSON, null)
+            if (!dashJson.isNullOrBlank()) {
+                val list = jsonToVideos(dashJson)
+                if (list.isNotEmpty()) {
+                    StudioRepository.latestPublishedContent = list
+                    StudioRepository.dashboardLatestVideo = list.first()
+                }
+            }
 
             Log.d(TAG, "Successfully loaded custom local data into StudioRepository.")
         } catch (e: Exception) {

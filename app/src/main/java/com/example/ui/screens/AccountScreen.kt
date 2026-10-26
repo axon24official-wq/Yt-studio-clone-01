@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.SwitchAccount
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,7 +38,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun AccountScreen(
     onBackClick: () -> Unit,
-    onChannelSelected: (ChannelProfile) -> Unit
+    onChannelSelected: (ChannelProfile) -> Unit,
+    onOpenAdminPanel: () -> Unit = {}
 ) {
     val colors = StudioTheme.colors
     val context = LocalContext.current
@@ -215,6 +217,12 @@ fun AccountScreen(
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Column(modifier = Modifier.fillMaxWidth()) {
+                    MenuItemRow(
+                        icon = Icons.Default.AdminPanelSettings,
+                        label = "Studio Admin Controls"
+                    ) {
+                        onOpenAdminPanel()
+                    }
                     MenuItemRow(icon = Icons.Default.Settings, label = "Settings") {
                         inputAnonKey = SupabaseClient.anonKey
                         showSettingsDialog = true

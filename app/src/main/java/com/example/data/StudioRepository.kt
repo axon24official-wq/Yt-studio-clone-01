@@ -59,6 +59,14 @@ object StudioRepository {
     var monetizationRequiredShortsViews by mutableStateOf("3.0M")
     var monetizationVideoUploads by mutableStateOf("5")
 
+    // Payout and Payment States (reactive)
+    var payoutHeadline by mutableStateOf("A payment is headed your way.\nExpect a payment 21–26 October")
+    var payoutAmount by mutableStateOf("$355.13")
+    var payoutMonthlyMonth by mutableStateOf("October earnings")
+    var payoutMonthlyAmount by mutableStateOf("$112.19")
+    var payoutMinimumText by mutableStateOf("Payment minimum: $100.00")
+    var communityMonthlyAudience by mutableStateOf("39.6k")
+
     // Sync State
     var isSyncing by mutableStateOf(false)
     var isConnectedToSupabase by mutableStateOf(false)
@@ -591,6 +599,12 @@ object StudioRepository {
         monetizationShortsViews = "3.2M"
         monetizationRequiredShortsViews = "3.0M"
         monetizationVideoUploads = "5"
+        payoutHeadline = "A payment is headed your way.\nExpect a payment 21–26 October"
+        payoutAmount = "$355.13"
+        payoutMonthlyMonth = "October earnings"
+        payoutMonthlyAmount = "$112.19"
+        payoutMinimumText = "Payment minimum: $100.00"
+        communityMonthlyAudience = "39.6k"
     }
 
     private fun saveProfileToCache(profile: ChannelProfile) {

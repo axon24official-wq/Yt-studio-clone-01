@@ -9,10 +9,12 @@ import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.outlined.Comment
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.MonetizationOn
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.HorizontalDivider
@@ -34,7 +36,7 @@ enum class StudioTab(val label: String) {
     DASHBOARD("Dashboard"),
     CONTENT("Content"),
     ANALYTICS("Analytics"),
-    COMMUNITY("Comments"),
+    COMMUNITY("Community"),
     EARN("Earn")
 }
 
@@ -66,7 +68,7 @@ fun StudioBottomNav(
                     StudioTab.DASHBOARD -> if (isSelected) Icons.Filled.GridView else Icons.Outlined.GridView
                     StudioTab.CONTENT -> if (isSelected) Icons.Filled.VideoLibrary else Icons.Outlined.VideoLibrary
                     StudioTab.ANALYTICS -> if (isSelected) Icons.Filled.BarChart else Icons.Outlined.BarChart
-                    StudioTab.COMMUNITY -> if (isSelected) Icons.AutoMirrored.Filled.Comment else Icons.AutoMirrored.Outlined.Comment
+                    StudioTab.COMMUNITY -> if (isSelected) Icons.Filled.Groups else Icons.Outlined.Groups
                     StudioTab.EARN -> if (isSelected) Icons.Filled.MonetizationOn else Icons.Outlined.MonetizationOn
                 }
 

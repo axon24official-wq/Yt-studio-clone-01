@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.data.StudioRepository
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -81,7 +83,7 @@ fun EarnScreen(
                         verticalAlignment = Alignment.Top
                     ) {
                         Text(
-                            text = "A payment is headed your way.\nExpect a payment 21–26 October",
+                            text = StudioRepository.payoutHeadline,
                             fontSize = 13.5.sp,
                             color = StudioDarkText,
                             lineHeight = 18.sp,
@@ -101,7 +103,7 @@ fun EarnScreen(
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Text(
-                            text = "$355.13",
+                            text = StudioRepository.payoutAmount,
                             fontSize = 34.sp,
                             fontWeight = FontWeight.Bold,
                             color = StudioBlack,
@@ -140,7 +142,7 @@ fun EarnScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "October earnings",
+                            text = StudioRepository.payoutMonthlyMonth,
                             fontSize = 13.5.sp,
                             color = StudioSecondaryText
                         )
@@ -156,7 +158,7 @@ fun EarnScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "$112.19",
+                        text = StudioRepository.payoutMonthlyAmount,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = StudioBlack
@@ -183,7 +185,7 @@ fun EarnScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Payment minimum: $100.00",
+                        text = StudioRepository.payoutMinimumText,
                         fontSize = 12.sp,
                         color = StudioSecondaryText
                     )
