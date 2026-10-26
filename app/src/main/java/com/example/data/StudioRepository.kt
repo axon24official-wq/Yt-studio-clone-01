@@ -20,7 +20,7 @@ object StudioRepository {
         id = "channel_daniel",
         name = "Amrit Ruhidas Official",
         handle = "@amritruhidassofficial",
-        subscribersCount = "14,220",
+        subscribersCount = "1,759,569",
         isMonetized = true
     )
 
@@ -45,10 +45,10 @@ object StudioRepository {
     )
 
     // Dashboard analytics 2x2 grid data (reactive Compose state)
-    var dashboardViews by mutableStateOf("24.8 lakh")
-    var dashboardWatchTime by mutableStateOf("16.8K")
-    var dashboardSubscribers by mutableStateOf("+3.8K")
-    var dashboardRevenue by mutableStateOf("$416.93")
+    var dashboardViews by mutableStateOf("90.7k")
+    var dashboardWatchTime by mutableStateOf("1.1k")
+    var dashboardSubscribers by mutableStateOf("-1.0k")
+    var dashboardRevenue by mutableStateOf("US$8.65")
     var dashboardPeriodLabel by mutableStateOf("Last 28 days")
 
     // Monetization States (reactive)
@@ -67,51 +67,65 @@ object StudioRepository {
     // Dashboard latest published video
     var dashboardLatestVideo by mutableStateOf(
         VideoItem(
-            id = "vid_motu_patlu",
-            title = "Motu Patlu Characters In Real ...",
-            type = ContentType.VIDEO,
-            duration = "8:12",
-            publishedTimeAgo = "First 1 hours, 9 minutes",
-            views = 204,
-            likes = 3,
-            comments = 8,
+            id = "vid_karwa_chauth",
+            title = "Karwa Chauth Par Biwi Ki Demand |...",
+            type = ContentType.SHORT,
+            duration = "0:59",
+            publishedTimeAgo = "First 15 hours, 27 minutes",
+            views = 1200,
+            likes = 15,
+            comments = 1,
             rankingText = "1 of 10",
-            avgPercentageViewed = "72.4%",
+            avgPercentageViewed = "78.2%",
             isExpanded = true,
-            thumbnailTitle = "Motu Patlu Characters In Real ..."
+            thumbnailTitle = "Karwa Chauth Par Biwi Ki Demand"
         )
     )
 
-    // Dashboard latest content list
+    // Dashboard latest content list (Matching official reference IMG_3103)
     var latestPublishedContent by mutableStateOf(
         listOf(
             VideoItem(
-                id = "vid_motu_patlu",
-                title = "Motu Patlu Characters In Real ...",
-                type = ContentType.VIDEO,
-                duration = "8:12",
-                publishedTimeAgo = "First 1 hours, 9 minutes",
-                views = 204,
-                likes = 3,
-                comments = 8,
+                id = "vid_karwa_chauth",
+                title = "Karwa Chauth Par Biwi Ki Demand |...",
+                type = ContentType.SHORT,
+                duration = "0:59",
+                publishedTimeAgo = "First 15 hours, 27 minutes",
+                views = 1200,
+                likes = 15,
+                comments = 1,
                 rankingText = "1 of 10",
-                avgPercentageViewed = "72.4%",
+                avgPercentageViewed = "78.2%",
                 isExpanded = false,
-                thumbnailTitle = "Motu Patlu Characters In Real ..."
+                thumbnailTitle = "Karwa Chauth Par Biwi Ki Demand"
             ),
             VideoItem(
-                id = "vid_jungle_book",
-                title = "The Jungle Book Characters Tr...",
-                type = ContentType.VIDEO,
-                duration = "10:45",
-                publishedTimeAgo = "First 1 days, 1 hours",
-                views = 2400,
-                likes = 15,
-                comments = 19,
+                id = "vid_juth_bolke",
+                title = "Jab Meri Biwi Juth Bolke Paise Mang...",
+                type = ContentType.SHORT,
+                duration = "0:45",
+                publishedTimeAgo = "First 1 days, 15 hours",
+                views = 3600,
+                likes = 32,
+                comments = 0,
                 rankingText = "2 of 10",
-                avgPercentageViewed = "65.1%",
+                avgPercentageViewed = "81.5%",
                 isExpanded = false,
-                thumbnailTitle = "The Jungle Book Characters Tr..."
+                thumbnailTitle = "Jab Meri Biwi Juth Bolke Paise Mang"
+            ),
+            VideoItem(
+                id = "vid_gussa_ho_jaye",
+                title = "Jab Meri Biwi Gussa ho Jaye #rahulr...",
+                type = ContentType.SHORT,
+                duration = "0:52",
+                publishedTimeAgo = "First 3 days, 3 hours",
+                views = 2600,
+                likes = 22,
+                comments = 1,
+                rankingText = "3 of 10",
+                avgPercentageViewed = "74.0%",
+                isExpanded = false,
+                thumbnailTitle = "Jab Meri Biwi Gussa ho Jaye"
             )
         )
     )
@@ -455,14 +469,16 @@ object StudioRepository {
     // Analytics: Audience Tab
     val audienceMonthlyMetric = MetricCardData(
         title = "Monthly audience",
-        value = "368",
+        value = "39.6k",
         subtitle = "",
         isPositive = true,
         showArrow = false,
-        trendData = listOf(170f, 210f, 260f, 310f, 350f, 380f, 410f, 440f, 460f, 470f, 490f, 500f, 510f, 500f, 505f, 490f, 440f, 380f, 368f),
+        trendData = listOf(39.2f, 39.4f, 39.5f, 39.3f, 39.6f, 39.5f, 39.4f, 39.6f, 39.7f, 39.5f, 39.6f, 39.6f, 39.5f, 39.6f, 39.7f, 39.6f, 39.5f, 39.6f, 39.4f, 39.6f, 39.6f),
         yMinLabel = "0",
-        yMidLabel = "170",
-        yMaxLabel = "510"
+        yMidLabel = "28.0k",
+        yMaxLabel = "42.0k",
+        startDateLabel = "27 Sept",
+        endDateLabel = "24 Oct"
     )
 
     val deviceBreakdown = listOf(
@@ -564,10 +580,10 @@ object StudioRepository {
     fun resetToDefaults() {
         danielProfile = defaultDanielProfile
         currentProfile = defaultDanielProfile
-        dashboardViews = "24.8 lakh"
-        dashboardWatchTime = "16.8K"
-        dashboardSubscribers = "+3.8K"
-        dashboardRevenue = "$416.93"
+        dashboardViews = "90.7k"
+        dashboardWatchTime = "1.1k"
+        dashboardSubscribers = "-1.0k"
+        dashboardRevenue = "US$8.65"
         dashboardPeriodLabel = "Last 28 days"
         isMonetized = true
         monetizationWatchHours = "3,140"

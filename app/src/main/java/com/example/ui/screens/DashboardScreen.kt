@@ -15,7 +15,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Comment
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -172,13 +174,15 @@ fun DashboardScreen(
                         AnalyticsCard(
                             modifier = Modifier.weight(1f),
                             label = "Views",
-                            value = StudioRepository.dashboardViews
+                            value = StudioRepository.dashboardViews,
+                            indicator = DashboardCardIndicator.GREEN_UP_ARROW
                         )
 
                         AnalyticsCard(
                             modifier = Modifier.weight(1f),
                             label = "Watch time (hours)",
-                            value = StudioRepository.dashboardWatchTime
+                            value = StudioRepository.dashboardWatchTime,
+                            indicator = DashboardCardIndicator.GREEN_CHECKMARK
                         )
                     }
 
@@ -190,13 +194,15 @@ fun DashboardScreen(
                         AnalyticsCard(
                             modifier = Modifier.weight(1f),
                             label = "Subscribers",
-                            value = StudioRepository.dashboardSubscribers
+                            value = StudioRepository.dashboardSubscribers,
+                            indicator = DashboardCardIndicator.NONE
                         )
 
                         AnalyticsCard(
                             modifier = Modifier.weight(1f),
                             label = "Estimated revenue",
-                            value = StudioRepository.dashboardRevenue
+                            value = StudioRepository.dashboardRevenue,
+                            indicator = DashboardCardIndicator.NONE
                         )
                     }
                 }
@@ -218,191 +224,204 @@ fun DashboardScreen(
         itemsIndexed(contentList) { index, video ->
             val isExpanded = expandedVideoId == video.id
 
-            Column(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("latest_content_item_$index")
+                    .testTag("latest_content_item_$index"),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.dp, StudioCardBorder),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                // Video Row: Thumbnail on left, title & elapsed time on right
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onVideoClick(video) }
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.Top
+                        .padding(12.dp)
                 ) {
-                    VideoThumbnailView(
-                        title = video.title,
-                        duration = video.duration,
-                        isShort = false,
-                        width = 96.dp,
-                        height = 54.dp,
-                        thumbnailUri = video.thumbnailUri
-                    )
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = video.title,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = StudioBlack,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = video.publishedTimeAgo,
-                            fontSize = 12.sp,
-                            color = StudioSecondaryText
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Stats row: Views count, Likes count, Comments count, Expansion chevron
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Analytics Views count
+                    // Video Row: Thumbnail on left, title & elapsed time on right
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.BarChart,
-                            contentDescription = "Views",
-                            tint = StudioSecondaryText,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = formatCount(video.views),
-                            fontSize = 12.sp,
-                            color = StudioSecondaryText
-                        )
-                    }
-
-                    // Likes count
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ThumbUp,
-                            contentDescription = "Likes",
-                            tint = StudioSecondaryText,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = formatCount(video.likes),
-                            fontSize = 12.sp,
-                            color = StudioSecondaryText
-                        )
-                    }
-
-                    // Comments count
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.Comment,
-                            contentDescription = "Comments",
-                            tint = StudioSecondaryText,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = formatCount(video.comments),
-                            fontSize = 12.sp,
-                            color = StudioSecondaryText
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Expansion chevron arrow on the right
-                    IconButton(
-                        onClick = {
-                            expandedVideoId = if (isExpanded) null else video.id
-                        },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = if (isExpanded) "Collapse" else "Expand",
-                            tint = StudioSecondaryText,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-
-                // Expandable detailed metrics dropdown
-                AnimatedVisibility(
-                    visible = isExpanded,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 10.dp, bottom = 6.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(StudioCardBackground)
-                            .border(1.dp, StudioCardBorder, RoundedCornerShape(12.dp))
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .clickable { onVideoClick(video) },
+                        verticalAlignment = Alignment.Top
                     ) {
+                        VideoThumbnailView(
+                            title = video.title,
+                            duration = video.duration,
+                            isShort = true,
+                            width = 46.dp,
+                            height = 68.dp,
+                            thumbnailUri = video.thumbnailUri
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = video.title,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = StudioBlack,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                lineHeight = 19.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = video.publishedTimeAgo,
+                                fontSize = 12.sp,
+                                color = StudioSecondaryText
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Stats row: Views count, Likes count, Comments count, Expansion chevron
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Analytics Views count
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 16.dp)
                         ) {
-                            Text(text = "Ranking by views", fontSize = 13.sp, color = StudioDarkText)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = video.rankingText, fontSize = 13.sp, color = StudioDarkText)
-                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = StudioSecondaryText, modifier = Modifier.size(16.dp))
+                            Icon(
+                                imageVector = Icons.Default.BarChart,
+                                contentDescription = "Views",
+                                tint = StudioSecondaryText,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = formatCount(video.views),
+                                fontSize = 12.sp,
+                                color = StudioSecondaryText
+                            )
+                        }
+
+                        // Likes count
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.ThumbUp,
+                                contentDescription = "Likes",
+                                tint = StudioSecondaryText,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = formatCount(video.likes),
+                                fontSize = 12.sp,
+                                color = StudioSecondaryText
+                            )
+                        }
+
+                        // Comments count
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.Comment,
+                                contentDescription = "Comments",
+                                tint = StudioSecondaryText,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = formatCount(video.comments),
+                                fontSize = 12.sp,
+                                color = StudioSecondaryText
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        // Expansion chevron arrow on the right
+                        IconButton(
+                            onClick = {
+                                expandedVideoId = if (isExpanded) null else video.id
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                tint = StudioSecondaryText,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+
+                    // Expandable detailed metrics dropdown
+                    AnimatedVisibility(
+                        visible = isExpanded,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFFFAFAFA))
+                                .border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(10.dp))
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "Ranking by views", fontSize = 13.sp, color = StudioDarkText)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(text = video.rankingText, fontSize = 13.sp, color = StudioDarkText)
+                                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = StudioSecondaryText, modifier = Modifier.size(16.dp))
+                                }
                             }
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(text = "Views", fontSize = 13.sp, color = StudioDarkText)
-                            Text(text = "${formatCount(video.views)} ↑", fontSize = 13.sp, color = StudioGreen, fontWeight = FontWeight.SemiBold)
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(text = "Average view duration", fontSize = 13.sp, color = StudioDarkText)
-                            Text(text = video.avgPercentageViewed, fontSize = 13.sp, color = StudioDarkText)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(text = "Views", fontSize = 13.sp, color = StudioDarkText)
+                                Text(text = "${formatCount(video.views)} ↑", fontSize = 13.sp, color = StudioGreen, fontWeight = FontWeight.SemiBold)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(text = "Average view duration", fontSize = 13.sp, color = StudioDarkText)
+                                Text(text = video.avgPercentageViewed, fontSize = 13.sp, color = StudioDarkText)
+                            }
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(10.dp))
-                HorizontalDivider(thickness = 0.8.dp, color = StudioDivider)
-                Spacer(modifier = Modifier.height(6.dp))
             }
         }
     }
+}
+
+enum class DashboardCardIndicator {
+    NONE,
+    GREEN_UP_ARROW,
+    GREEN_CHECKMARK
 }
 
 @Composable
 private fun AnalyticsCard(
     modifier: Modifier = Modifier,
     label: String,
-    value: String
+    value: String,
+    indicator: DashboardCardIndicator = DashboardCardIndicator.NONE
 ) {
     Card(
         modifier = modifier.height(86.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = StudioCardBackground),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         border = androidx.compose.foundation.BorderStroke(1.dp, StudioCardBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -419,12 +438,43 @@ private fun AnalyticsCard(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Text(
-                text = value,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = StudioBlack
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = value,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = StudioBlack
+                )
+
+                if (indicator != DashboardCardIndicator.NONE) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(17.dp)
+                            .clip(CircleShape)
+                            .background(StudioGreen),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (indicator == DashboardCardIndicator.GREEN_UP_ARROW) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowUpward,
+                                contentDescription = "Up",
+                                tint = Color.White,
+                                modifier = Modifier.size(11.dp)
+                            )
+                        } else if (indicator == DashboardCardIndicator.GREEN_CHECKMARK) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Check",
+                                tint = Color.White,
+                                modifier = Modifier.size(11.dp)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -432,7 +482,10 @@ private fun AnalyticsCard(
 private fun formatCount(count: Long): String {
     return when {
         count >= 1_000_000 -> String.format("%.1fM", count / 1_000_000.0)
-        count >= 1_000 -> String.format("%.1fK", count / 1_000.0)
+        count >= 1_000 -> {
+            val v = count / 1000.0
+            if (v % 1.0 == 0.0) String.format("%.0fk", v) else String.format("%.1fk", v)
+        }
         else -> count.toString()
     }
 }

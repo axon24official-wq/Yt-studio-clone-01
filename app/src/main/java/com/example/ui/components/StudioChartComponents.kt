@@ -67,10 +67,23 @@ fun TrendLineChart(
     yMinLabel: String = "0",
     yMidLabel: String = "",
     yMaxLabel: String = "",
+    yLabels: List<String> = emptyList(),
+    fixedMin: Float? = null,
+    fixedMax: Float? = null,
     startDateLabel: String = "23 Sept",
     endDateLabel: String = "20 Oct",
     modifier: Modifier = Modifier
 ) {
+    val labelsToDisplay = if (yLabels.isNotEmpty()) {
+        yLabels
+    } else {
+        listOfNotNull(
+            yMaxLabel.takeIf { it.isNotEmpty() },
+            yMidLabel.takeIf { it.isNotEmpty() },
+            yMinLabel.takeIf { it.isNotEmpty() }
+        )
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -80,16 +93,14 @@ fun TrendLineChart(
             // Y-Axis labels
             Column(
                 modifier = Modifier
-                    .width(36.dp)
+                    .width(42.dp)
                     .fillMaxHeight(),
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.End
             ) {
-                Text(text = yMaxLabel, fontSize = 10.sp, color = StudioSecondaryText)
-                if (yMidLabel.isNotEmpty()) {
-                    Text(text = yMidLabel, fontSize = 10.sp, color = StudioSecondaryText)
+                labelsToDisplay.forEach { lbl ->
+                    Text(text = lbl, fontSize = 10.sp, color = StudioSecondaryText)
                 }
-                Text(text = yMinLabel, fontSize = 10.sp, color = StudioSecondaryText)
             }
 
             Spacer(modifier = Modifier.width(8.dp))
@@ -104,21 +115,24 @@ fun TrendLineChart(
                 val width = size.width
                 val height = size.height
 
-                // Draw 3 horizontal guidelines
+                // Draw horizontal guidelines for each label
                 val gridColor = Color(0xFFEEEEEE)
-                drawLine(gridColor, Offset(0f, 0f), Offset(width, 0f), strokeWidth = 1f)
-                drawLine(gridColor, Offset(0f, height / 2f), Offset(width, height / 2f), strokeWidth = 1f)
-                drawLine(gridColor, Offset(0f, height), Offset(width, height), strokeWidth = 1f)
+                val lineCount = if (labelsToDisplay.size > 1) labelsToDisplay.size else 3
+                for (i in 0 until lineCount) {
+                    val lineY = (i.toFloat() / (lineCount - 1)) * height
+                    drawLine(gridColor, Offset(0f, lineY), Offset(width, lineY), strokeWidth = 1f)
+                }
 
                 if (data.size < 2) return@Canvas
 
-                val minVal = data.minOrNull() ?: 0f
-                val maxVal = data.maxOrNull() ?: 1f
+                val minVal = fixedMin ?: (data.minOrNull() ?: 0f)
+                val maxVal = fixedMax ?: (data.maxOrNull() ?: 1f)
                 val range = if (maxVal == minVal) 1f else (maxVal - minVal)
 
                 val points = data.mapIndexed { index, value ->
                     val x = (index.toFloat() / (data.size - 1)) * width
-                    val normalizedY = (value - minVal) / range
+                    val clampedVal = value.coerceIn(minVal, maxVal)
+                    val normalizedY = (clampedVal - minVal) / range
                     val y = height - (normalizedY * (height - 8f)) - 4f
                     Offset(x, y)
                 }

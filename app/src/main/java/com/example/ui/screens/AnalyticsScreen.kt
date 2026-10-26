@@ -895,7 +895,7 @@ private fun AudienceTabContent(onVideoClick: (VideoItem) -> Unit) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Monthly audience Card (Recording 00:56)
+        // Monthly audience Card (Matching reference IMG_3104)
         item {
             Card(
                 modifier = Modifier
@@ -910,17 +910,17 @@ private fun AudienceTabContent(onVideoClick: (VideoItem) -> Unit) {
                         fontSize = 13.sp,
                         color = colors.textSecondary
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "368",
+                            text = "39.6k",
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textPrimary
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Icon(
-                            imageVector = Icons.Default.Info,
+                            imageVector = Icons.Default.AccessTime,
                             contentDescription = null,
                             tint = colors.textSecondary,
                             modifier = Modifier.size(16.dp)
@@ -931,18 +931,48 @@ private fun AudienceTabContent(onVideoClick: (VideoItem) -> Unit) {
 
                     TrendLineChart(
                         data = StudioRepository.audienceMonthlyMetric.trendData,
-                        lineColor = Color(0xFF673AB7),
-                        yMinLabel = "0",
-                        yMidLabel = "170",
-                        yMaxLabel = "510",
-                        startDateLabel = "24 Sept",
-                        endDateLabel = "21 Oct"
+                        lineColor = Color(0xFF7E57C2),
+                        yLabels = listOf("42.0k", "28.0k", "14.0k", "0"),
+                        fixedMin = 0f,
+                        fixedMax = 42.0f,
+                        startDateLabel = "27 Sept",
+                        endDateLabel = "24 Oct"
                     )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Pager dots (3 dots)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(colors.textPrimary)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFD1D5DB))
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFD1D5DB))
+                        )
+                    }
                 }
             }
         }
 
-        // Audience by watch behaviour (Frame 020)
+        // Audience by watch behaviour (Matching reference IMG_3104)
         item {
             Card(
                 modifier = Modifier
@@ -959,9 +989,9 @@ private fun AudienceTabContent(onVideoClick: (VideoItem) -> Unit) {
                             fontWeight = FontWeight.Bold,
                             color = colors.textPrimary
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Icon(
-                            imageVector = Icons.Default.Info,
+                            imageVector = Icons.Default.AccessTime,
                             contentDescription = null,
                             tint = colors.textSecondary,
                             modifier = Modifier.size(16.dp)
@@ -1002,7 +1032,7 @@ private fun AudienceTabContent(onVideoClick: (VideoItem) -> Unit) {
             }
         }
 
-        // Popular with casual viewers carousel (Frame 020)
+        // Popular with new viewers (Matching reference IMG_3104)
         item {
             Card(
                 modifier = Modifier
@@ -1013,11 +1043,12 @@ private fun AudienceTabContent(onVideoClick: (VideoItem) -> Unit) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Popular with casual viewers",
+                        text = "Popular with new viewers",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textPrimary
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Views · Last 28 days",
                         fontSize = 13.sp,
@@ -1025,18 +1056,32 @@ private fun AudienceTabContent(onVideoClick: (VideoItem) -> Unit) {
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    val casualPopularVideos = listOf(
-                        Triple("Husband Harassing Lovi...", "9.2k", true),
-                        Triple("Motivational Story Of an...", "196", false),
-                        Triple("बीवी के साथ करी जबरदस्ती |...", "176", false),
-                        Triple("Corrupt Policeman Humi...", "122", false),
-                        Triple("Jab Meri Biwi Gussa ho...", "105", true)
+                    val newPopularVideos = listOf(
+                        Triple("Husband Harassing Lovi...", "61.2k", true),
+                        Triple("Jab Meri Biwi Gussa ho...", "1.9k", true),
+                        Triple("Jab Meri Biwi Juth Bolk...", "1.3k", true),
+                        Triple("Karwa Chauth Par Biwi...", "929", true),
+                        Triple("Corrupt Policeman Humi...", "567", false)
                     )
 
-                    casualPopularVideos.forEach { (title, views, isShort) ->
+                    newPopularVideos.forEach { (title, views, isShort) ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clickable {
+                                    val videoItem = VideoItem(
+                                        id = "new_viewers_${title.hashCode()}",
+                                        title = title,
+                                        type = if (isShort) ContentType.SHORT else ContentType.VIDEO,
+                                        duration = if (isShort) "0:45" else "12:30",
+                                        publishedTimeAgo = "28 days ago",
+                                        views = views.replace("k", "").toFloatOrNull()?.let { (it * 1000).toLong() } ?: views.toLongOrNull() ?: 1000L,
+                                        likes = 120,
+                                        comments = 15,
+                                        thumbnailTitle = title
+                                    )
+                                    onVideoClick(videoItem)
+                                }
                                 .padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {

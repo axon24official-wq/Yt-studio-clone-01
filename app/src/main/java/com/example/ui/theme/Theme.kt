@@ -38,8 +38,8 @@ data class StudioColorTokens(
 val LightStudioColors = StudioColorTokens(
     background = Color(0xFFFFFFFF),
     surface = Color(0xFFFFFFFF),
-    cardBackground = Color(0xFFEEF0F4),
-    cardBorder = Color(0xFFD8DCE3),
+    cardBackground = Color(0xFFFFFFFF),
+    cardBorder = Color(0xFFEEEEEE),
     divider = Color(0xFFEEEEEE),
     textPrimary = Color(0xFF0F0F0F),
     textSecondary = Color(0xFF606060),
