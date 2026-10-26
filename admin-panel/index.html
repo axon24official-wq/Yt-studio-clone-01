@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>YT Studio — Admin Control Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- Supabase JS Client v2 from official CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Top Header -->
+    <header class="studio-header">
+      <div class="header-left">
+        <button id="mobileMenuBtn" class="icon-btn mobile-only" aria-label="Menu">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+        <div class="logo-container">
+          <svg class="yt-logo" viewBox="0 0 88 20" width="88" height="20">
+            <path fill="#FF0000" d="M17.9 2C19.1 2 20.1 2.3 20.8 3c.7.7 1.1 1.7 1.2 2.9V14.1c-.1 1.2-.5 2.2-1.2 2.9-.7.7-1.7 1-2.8 1H4.1c-1.1 0-2.1-.3-2.8-1C.6 16.3.2 15.3.1 14.1V5.9C.2 4.7.6 3.7 1.3 3c.7-.7 1.7-1 2.8-1h13.8z"/>
+            <path fill="#FFFFFF" d="M9 13.5l5.5-3.5L9 6.5z"/>
+          </svg>
+          <span class="logo-text">Studio Admin</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <div id="supabaseStatusBadge" class="status-badge checking">
+          <span class="status-dot"></span>
+          <span class="status-text">Checking Supabase...</span>
+        </div>
+        <div id="userProfileArea" class="user-profile-area hidden">
+          <span id="userEmailBadge" class="user-email-text">admin</span>
+          <button id="openChangePasswordBtn" class="btn btn-secondary btn-sm">Password</button>
+          <button id="logoutBtn" class="btn btn-secondary btn-sm">Log out</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Layout Container -->
+    <div class="studio-body">
+      <!-- Sidebar Navigation -->
+      <nav id="sidebar" class="sidebar">
+        <div class="channel-mini-summary">
+          <div id="sidebarAvatar" class="sidebar-avatar">DD</div>
+          <div class="sidebar-channel-meta">
+            <div id="sidebarChannelName" class="sidebar-name">Daniel Dalen</div>
+            <div id="sidebarChannelSubs" class="sidebar-subs">48,237 subs</div>
+          </div>
+        </div>
+        <ul class="nav-links">
+          <li class="nav-item active" data-tab="dashboard">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+            <span>Overview</span>
+          </li>
+          <li class="nav-item" data-tab="channel">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            <span>Channel &amp; Profile</span>
+          </li>
+          <li class="nav-item" data-tab="metrics">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+            <span>Dashboard 2x2</span>
+          </li>
+          <li class="nav-item" data-tab="videos">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>
+            <span>Content &amp; Videos</span>
+          </li>
+          <li class="nav-item" data-tab="analytics">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+            <span>Analytics Charts</span>
+          </li>
+          <li class="nav-item" data-tab="monetization">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+            <span>Monetization</span>
+          </li>
+          <li class="nav-item" data-tab="settings">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+            <span>Supabase Config</span>
+          </li>
+        </ul>
+        <div class="sidebar-footer">
+          <p class="footer-note">Controls Android App in Realtime</p>
+        </div>
+      </nav>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <!-- Auth Barrier Banner (Shown when not logged in or not admin) -->
+        <div id="authBarrier" class="auth-card hidden">
+          <div class="auth-card-inner">
+            <div class="auth-icon-circle">
+              <svg viewBox="0 0 24 24" width="36" height="36"><path fill="#FF0000" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+            </div>
+            <h2>Admin Sign In</h2>
+            <p class="auth-subtitle">Sign in to control the live data displayed inside your Android YouTube Studio app.</p>
+            
+            <div id="authAlert" class="alert-box alert-error hidden"></div>
+
+            <form id="loginForm" class="auth-form">
+              <div class="form-group">
+                <label for="loginUsername">Username</label>
+                <input type="text" id="loginUsername" value="admin" required autocomplete="username" placeholder="admin">
+                <small class="helper-text">Admin username is <code>admin</code></small>
+              </div>
+              <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" placeholder="Temporary: Admin123" required autocomplete="current-password">
+              </div>
+              <button type="submit" id="loginSubmitBtn" class="btn btn-primary btn-full">
+                <span>Sign In to Admin Panel</span>
+              </button>
+            </form>
+
+            <div class="auth-help-box">
+              <p><strong>Initial Setup Credentials:</strong></p>
+              <p>&bull; Username: <code>admin</code></p>
+              <p>&bull; Temporary Password: <code>Admin123</code></p>
+              <p style="margin-top:8px; font-size:11px; color:#888;">
+                Prerequisite: Create user <code>admin@ytstudio.local</code> with password <code>Admin123</code> in your Supabase Dashboard &rarr; Authentication &rarr; Users.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Protected Admin Panel Views (Only active when logged in as admin) -->
+        <div id="adminViews" class="tab-content-wrapper">
+          <!-- Temporary Password Alert Banner -->
+          <div id="tempPasswordNotice" class="alert-box alert-warning hidden" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; background-color:rgba(255,193,7,0.15); color:#ffc107; border:1px solid rgba(255,193,7,0.35); border-radius:8px; padding:12px 16px;">
+            <div>
+              <strong>Security Notice:</strong> You are currently logged in with the temporary password (<code>Admin123</code>). It is recommended to change it.
+            </div>
+            <button id="bannerChangePasswordBtn" class="btn btn-secondary btn-sm" style="margin-left:12px; white-space:nowrap;">Change Password</button>
+          </div>
+
+          <!-- TAB 1: OVERVIEW -->
+          <section id="tab-dashboard" class="tab-pane active">
+            <div class="page-title-row">
+              <div>
+                <h1>Live Overview</h1>
+                <p class="page-subtitle">Real-time status of data displayed inside your Android YouTube Studio clone.</p>
+              </div>
+              <div class="header-actions">
+                <button id="refreshAllBtn" class="btn btn-secondary">
+                  <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                  <span>Sync Now</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Overview Live Cards -->
+            <div class="overview-grid">
+              <div class="card stat-card">
+                <div class="stat-card-header">
+                  <span class="stat-label">Channel</span>
+                  <span id="overviewMonetizedBadge" class="badge badge-success">Monetized</span>
+                </div>
+                <div id="overviewChannelName" class="stat-number">Daniel Dalen</div>
+                <div id="overviewChannelSubs" class="stat-sub">48,237 total subscribers</div>
+              </div>
+
+              <div class="card stat-card">
+                <div class="stat-card-header">
+                  <span class="stat-label">28-Day Views</span>
+                  <span class="indicator-green">&#9650;</span>
+                </div>
+                <div id="overviewViews" class="stat-number">887.7K</div>
+                <div class="stat-sub">Views in the Android 2x2 grid</div>
+              </div>
+
+              <div class="card stat-card">
+                <div class="stat-card-header">
+                  <span class="stat-label">Watch Time</span>
+                  <span class="indicator-green">&#9650;</span>
+                </div>
+                <div id="overviewWatchTime" class="stat-number">66.2K</div>
+                <div class="stat-sub">Hours (Dashboard)</div>
+              </div>
+
+              <div class="card stat-card">
+                <div class="stat-card-header">
+                  <span class="stat-label">Estimated Revenue</span>
+                  <span class="indicator-green">&#9650;</span>
+                </div>
+                <div id="overviewRevenue" class="stat-number">$0</div>
+                <div class="stat-sub">Dashboard Revenue Metric</div>
+              </div>
+            </div>
+
+            <!-- Quick Jump Panels -->
+            <div class="quick-panels-grid">
+              <div class="card">
+                <h3>Latest Published Video on App</h3>
+                <div id="latestVideoCard" class="latest-video-preview">
+                  <div class="latest-video-thumb">POV</div>
+                  <div class="latest-video-info">
+                    <h4 id="latestVideoTitle">pov: a 26 year old entrepreneur at a bus...</h4>
+                    <p id="latestVideoMeta">39.5K views &bull; 2.7K likes &bull; 220 comments &bull; Ranking: 1 of 10</p>
+                  </div>
+                </div>
+                <button class="btn btn-secondary btn-sm jump-btn" data-jump="videos">Edit Video Statistics &rarr;</button>
+              </div>
+
+              <div class="card">
+                <h3>Sync Diagnostics</h3>
+                <div class="diag-list">
+                  <div class="diag-item">
+                    <span>Supabase Endpoint:</span>
+                    <code id="diagEndpoint">https://zzswtrpdjllmagjjmxbx.supabase.co</code>
+                  </div>
+                  <div class="diag-item">
+                    <span>Database Status:</span>
+                    <span id="diagDbStatus" class="badge badge-success">Connected</span>
+                  </div>
+                  <div class="diag-item">
+                    <span>Realtime Sync:</span>
+                    <span id="diagRealtimeStatus" class="badge badge-success">Listening (Active)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- TAB 2: CHANNEL PROFILE -->
+          <section id="tab-channel" class="tab-pane">
+            <div class="page-title-row">
+              <div>
+                <h1>Channel Profile Editor</h1>
+                <p class="page-subtitle">Changes here update the avatar, channel title, handle, and subscriber count on the Android home screen.</p>
+              </div>
+            </div>
+
+            <div class="card max-w-700">
+              <form id="channelProfileForm">
+                <div class="form-group">
+                  <label for="channelNameInput">Channel Name</label>
+                  <input type="text" id="channelNameInput" required placeholder="e.g. Daniel Dalen">
+                </div>
+
+                <div class="form-group">
+                  <label for="channelHandleInput">Channel Handle</label>
+                  <input type="text" id="channelHandleInput" required placeholder="e.g. @danieldalen">
+                </div>
+
+                <div class="form-group">
+                  <label for="channelSubsInput">Total Subscribers Count (Text displayed on App)</label>
+                  <input type="text" id="channelSubsInput" required placeholder="e.g. 48,237 or 1.2M">
+                  <small class="helper-text">This exact string is shown on the Dashboard below the avatar.</small>
+                </div>
+
+                <div class="form-group">
+                  <label for="channelEmailInput">Creator Email</label>
+                  <input type="email" id="channelEmailInput" placeholder="creator@gmail.com">
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label for="channelAvatarColorInput">Avatar Color Theme</label>
+                    <input type="color" id="channelAvatarColorInput" value="#FF7043">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Monetization Status</label>
+                    <div class="toggle-wrapper">
+                      <input type="checkbox" id="channelMonetizedToggle" class="switch">
+                      <label for="channelMonetizedToggle" class="toggle-label">Partner Program Active</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" id="saveChannelBtn" class="btn btn-primary">Save Channel Changes</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <!-- TAB 3: DASHBOARD 2x2 METRICS -->
+          <section id="tab-metrics" class="tab-pane">
+            <div class="page-title-row">
+              <div>
+                <h1>Dashboard 2x2 Metrics Grid</h1>
+                <p class="page-subtitle">Controls the four cards in the Channel Analytics section on the Android Home Screen.</p>
+              </div>
+            </div>
+
+            <div class="card max-w-700">
+              <form id="dashboardMetricsForm">
+                <div class="form-group">
+                  <label for="metricsPeriodLabel">Period Date Label</label>
+                  <input type="text" id="metricsPeriodLabel" value="Last 28 days" placeholder="e.g. Last 28 days">
+                </div>
+
+                <div class="metrics-editor-grid">
+                  <!-- Views Tile -->
+                  <div class="metric-box">
+                    <h4>Card 1: Views</h4>
+                    <div class="form-group">
+                      <label for="viewsValInput">Value</label>
+                      <input type="text" id="viewsValInput" value="887.7K" required>
+                    </div>
+                    <div class="checkbox-row">
+                      <input type="checkbox" id="viewsUpCheckbox" checked>
+                      <label for="viewsUpCheckbox">Green performance indicator (&#9650;)</label>
+                    </div>
+                  </div>
+
+                  <!-- Watch Time Tile -->
+                  <div class="metric-box">
+                    <h4>Card 2: Watch time (hours)</h4>
+                    <div class="form-group">
+                      <label for="watchTimeValInput">Value</label>
+                      <input type="text" id="watchTimeValInput" value="66.2K" required>
+                    </div>
+                    <div class="checkbox-row">
+                      <input type="checkbox" id="watchTimeUpCheckbox" checked>
+                      <label for="watchTimeUpCheckbox">Green performance indicator (&#9650;)</label>
+                    </div>
+                  </div>
+
+                  <!-- Subscribers Tile -->
+                  <div class="metric-box">
+                    <h4>Card 3: Subscribers</h4>
+                    <div class="form-group">
+                      <label for="subscribersValInput">Value</label>
+                      <input type="text" id="subscribersValInput" value="+39.0K" required>
+                    </div>
+                    <div class="checkbox-row">
+                      <input type="checkbox" id="subscribersUpCheckbox" checked>
+                      <label for="subscribersUpCheckbox">Green performance indicator (&#9650;)</label>
+                    </div>
+                  </div>
+
+                  <!-- Revenue Tile -->
+                  <div class="metric-box">
+                    <h4>Card 4: Estimated revenue</h4>
+                    <div class="form-group">
+                      <label for="revenueValInput">Value</label>
+                      <input type="text" id="revenueValInput" value="$0" required>
+                    </div>
+                    <div class="checkbox-row">
+                      <input type="checkbox" id="revenueUpCheckbox" checked>
+                      <label for="revenueUpCheckbox">Green performance indicator (&#9650;)</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" id="saveMetricsBtn" class="btn btn-primary">Save 2x2 Grid Metrics</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <!-- TAB 4: VIDEOS & CONTENT -->
+          <section id="tab-videos" class="tab-pane">
+            <div class="page-title-row">
+              <div>
+                <h1>Content &amp; Video Management</h1>
+                <p class="page-subtitle">Manage videos, shorts, livestreams, and video performance metrics shown in the Android app.</p>
+              </div>
+              <div class="header-actions">
+                <button id="addVideoBtn" class="btn btn-primary">
+                  <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                  <span>Add New Video</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Videos Filter Bar -->
+            <div class="filter-pills">
+              <button class="pill-btn active" data-filter="ALL">All Content</button>
+              <button class="pill-btn" data-filter="VIDEO">Videos</button>
+              <button class="pill-btn" data-filter="SHORT">Shorts</button>
+              <button class="pill-btn" data-filter="LIVE">Live Streams</button>
+            </div>
+
+            <!-- Videos Table / List -->
+            <div class="card p-0">
+              <div class="table-responsive">
+                <table class="studio-table">
+                  <thead>
+                    <tr>
+                      <th>Thumbnail</th>
+                      <th>Video Title &amp; ID</th>
+                      <th>Type</th>
+                      <th>Duration</th>
+                      <th>Published</th>
+                      <th>Views</th>
+                      <th>Likes</th>
+                      <th>Comments</th>
+                      <th>Dashboard Latest</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="videosTableBody">
+                    <tr><td colspan="10" class="text-center py-4">Loading videos from database...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- TAB 5: ANALYTICS CHARTS -->
+          <section id="tab-analytics" class="tab-pane">
+            <div class="page-title-row">
+              <div>
+                <h1>Analytics Charts &amp; Metrics</h1>
+                <p class="page-subtitle">Controls the interactive metric cards &amp; trend charts in the Analytics screen.</p>
+              </div>
+            </div>
+
+            <div class="analytics-cards-grid" id="analyticsOverviewContainer">
+              <!-- Dynamically populated -->
+            </div>
+          </section>
+
+          <!-- TAB 6: MONETIZATION -->
+          <section id="tab-monetization" class="tab-pane">
+            <div class="page-title-row">
+              <div>
+                <h1>Monetization Control</h1>
+                <p class="page-subtitle">Toggle partner program eligibility and display simulated revenue statistics.</p>
+              </div>
+            </div>
+
+            <div class="card max-w-700">
+              <div class="monetization-banner">
+                <div class="banner-icon-area">&#128176;</div>
+                <div class="banner-text">
+                  <h3>YouTube Partner Program Status</h3>
+                  <p>When enabled, the channel profile in Android shows active monetization, and the Estimated Revenue card appears in the Analytics screen.</p>
+                </div>
+              </div>
+
+              <div class="toggle-large-box">
+                <div>
+                  <h4>Monetization Status: <span id="monetizeStatusText" class="text-success">ACTIVE</span></h4>
+                  <p class="text-muted">Turn off to simulate an unmonetized creator channel.</p>
+                </div>
+                <input type="checkbox" id="monetizationBigToggle" class="switch" checked>
+              </div>
+
+              <div class="form-actions mt-4">
+                <button id="saveMonetizationBtn" class="btn btn-primary">Save Monetization State</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- TAB 7: SETTINGS / SUPABASE CONFIG -->
+          <section id="tab-settings" class="tab-pane">
+            <div class="page-title-row">
+              <div>
+                <h1>Supabase Connection Settings</h1>
+                <p class="page-subtitle">Configure your Supabase publishable credentials. Safe for browser &amp; Android client use.</p>
+              </div>
+            </div>
+
+            <div class="card max-w-700">
+              <form id="supabaseConfigForm">
+                <div class="form-group">
+                  <label for="cfgSupabaseUrl">Supabase Project URL</label>
+                  <input type="text" id="cfgSupabaseUrl" required value="https://zzswtrpdjllmagjjmxbx.supabase.co">
+                </div>
+
+                <div class="form-group">
+                  <label for="cfgSupabaseAnonKey">Supabase Publishable (Anon) Key</label>
+                  <input type="text" id="cfgSupabaseAnonKey" required placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                  <small class="helper-text">
+                    Found in your Supabase Dashboard &rarr; <strong>Project Settings</strong> &rarr; <strong>API</strong> &rarr; <strong>Project API keys</strong> &rarr; <strong>anon (public)</strong>.
+                    <br><strong>NEVER</strong> paste your <code>service_role</code> secret key here!
+                  </small>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" id="saveSupabaseConfigBtn" class="btn btn-primary">Save &amp; Reconnect</button>
+                  <button type="button" id="testConnectionBtn" class="btn btn-secondary">Test Connection</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+        </div>
+      </main>
+    </div>
+
+    <!-- Edit Video Modal -->
+    <div id="videoModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="videoModalTitle">Edit Video</h3>
+          <button id="closeVideoModalBtn" class="icon-btn">&times;</button>
+        </div>
+        <form id="videoForm" class="modal-body">
+          <input type="hidden" id="vFormId">
+          <div class="form-group">
+            <label for="vFormTitle">Title</label>
+            <input type="text" id="vFormTitle" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="vFormType">Type</label>
+              <select id="vFormType">
+                <option value="VIDEO">Video</option>
+                <option value="SHORT">Short</option>
+                <option value="LIVE">Live Stream</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label for="vFormDuration">Duration</label>
+              <input type="text" id="vFormDuration" placeholder="e.g. 8:42" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="vFormViews">Views Count (Number)</label>
+              <input type="number" id="vFormViews" required min="0">
+            </div>
+            <div class="form-group flex-1">
+              <label for="vFormLikes">Likes Count (Number)</label>
+              <input type="number" id="vFormLikes" required min="0">
+            </div>
+            <div class="form-group flex-1">
+              <label for="vFormComments">Comments</label>
+              <input type="number" id="vFormComments" min="0">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="vFormPublished">Published Ago Text</label>
+              <input type="text" id="vFormPublished" placeholder="e.g. 217 days ago">
+            </div>
+            <div class="form-group flex-1">
+              <label for="vFormThumbnailTitle">Thumbnail Badge Text</label>
+              <input type="text" id="vFormThumbnailTitle" placeholder="e.g. POV">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="vFormRanking">Ranking Text</label>
+              <input type="text" id="vFormRanking" placeholder="e.g. 1 of 10">
+            </div>
+            <div class="form-group flex-1">
+              <label for="vFormAvgPercentage">Avg % Viewed</label>
+              <input type="text" id="vFormAvgPercentage" placeholder="e.g. 84.2%">
+            </div>
+          </div>
+          <div class="checkbox-row mt-2">
+            <input type="checkbox" id="vFormIsDashboardLatest">
+            <label for="vFormIsDashboardLatest">Display as "Latest published content" on Dashboard</label>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="cancelVideoModalBtn" class="btn btn-secondary">Cancel</button>
+            <button type="submit" id="saveVideoBtn" class="btn btn-primary">Save Video</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" class="modal-overlay hidden">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3>Change Admin Password</h3>
+          <button id="closeChangePasswordBtn" class="icon-btn">&times;</button>
+        </div>
+        <form id="changePasswordForm" class="modal-body">
+          <div id="changePasswordAlert" class="alert-box alert-error hidden"></div>
+          <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+            Update the Supabase Auth password for the admin account. Minimum 6 characters.
+          </p>
+          <div class="form-group">
+            <label for="newPasswordInput">New Password</label>
+            <input type="password" id="newPasswordInput" required minlength="6" placeholder="Enter new password" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label for="confirmPasswordInput">Confirm New Password</label>
+            <input type="password" id="confirmPasswordInput" required minlength="6" placeholder="Repeat new password" autocomplete="new-password">
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="cancelChangePasswordBtn" class="btn btn-secondary">Cancel</button>
+            <button type="submit" id="submitChangePasswordBtn" class="btn btn-primary">Save New Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="modal-overlay hidden">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 id="confirmTitle">Confirm Action</h3>
+          <button id="closeConfirmBtn" class="icon-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p id="confirmMessage">Are you sure you want to proceed?</p>
+        </div>
+        <div class="modal-footer">
+          <button id="confirmCancelBtn" class="btn btn-secondary">Cancel</button>
+          <button id="confirmOkBtn" class="btn btn-danger">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

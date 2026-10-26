@@ -1,0 +1,34 @@
+# Built application files
+*.apk
+*.aab
+*.ap_
+*.dex
+.build-outputs/
+
+# Gradle files
+.gradle/
+build/
+app/build/
+
+# Kotlin
+.kotlin/
+
+# IDE & Editor files
+.idea/
+*.iml
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+
+# Local configuration & secrets
+local.properties
+/local.properties
+.env
+debug.keystore
+
+# Temporary assets & media caches
+public/
+.tempmediaStorage/
+*.log
+*.tmp

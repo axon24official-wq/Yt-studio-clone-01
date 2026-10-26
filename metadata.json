@@ -1,0 +1,6 @@
+{
+  "name": "YouTube Studio",
+  "description": "High-fidelity mobile frontend clone of YouTube Studio with Dashboard, Content, Analytics, Community, and Earn tabs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
