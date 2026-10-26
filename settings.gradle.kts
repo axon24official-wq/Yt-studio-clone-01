@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Studio"
+rootProject.name = "YT Studio"
 
 include(":app")
