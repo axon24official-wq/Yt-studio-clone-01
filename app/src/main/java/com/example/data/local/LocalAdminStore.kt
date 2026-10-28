@@ -462,12 +462,72 @@ object LocalAdminStore {
         }
     }
 
+    fun updateChannelAvatarUri(uri: String) {
+        val clean = uri.trim()
+        prefs?.edit()
+            ?.putString(KEY_PROFILE_AVATAR_URI, clean)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+        val updated = StudioRepository.danielProfile.copy(avatarUri = clean.takeIf { it.isNotBlank() })
+        StudioRepository.danielProfile = updated
+        StudioRepository.currentProfile = updated
+    }
+
     fun updateVideoViews(videoId: String, newViews: Long) {
         val existingVideo = StudioRepository.findVideoById(videoId)
         if (existingVideo != null) {
             val updated = existingVideo.copy(views = newViews)
             addOrUpdateVideo(updated, showOnDashboard = StudioRepository.latestPublishedContent.any { it.id == videoId })
         }
+    }
+
+    fun updateVideoLikes(videoId: String, newLikes: Long) {
+        val existingVideo = StudioRepository.findVideoById(videoId)
+        if (existingVideo != null) {
+            val updated = existingVideo.copy(likes = newLikes)
+            addOrUpdateVideo(updated, showOnDashboard = StudioRepository.latestPublishedContent.any { it.id == videoId })
+        }
+    }
+
+    fun updateVideoComments(videoId: String, newComments: Long) {
+        val existingVideo = StudioRepository.findVideoById(videoId)
+        if (existingVideo != null) {
+            val updated = existingVideo.copy(comments = newComments)
+            addOrUpdateVideo(updated, showOnDashboard = StudioRepository.latestPublishedContent.any { it.id == videoId })
+        }
+    }
+
+    fun updateVideoDuration(videoId: String, newDuration: String) {
+        val existingVideo = StudioRepository.findVideoById(videoId)
+        if (existingVideo != null) {
+            val updated = existingVideo.copy(duration = newDuration.trim())
+            addOrUpdateVideo(updated, showOnDashboard = StudioRepository.latestPublishedContent.any { it.id == videoId })
+        }
+    }
+
+    fun updateVideoPublishedTimeAgo(videoId: String, newTimeAgo: String) {
+        val existingVideo = StudioRepository.findVideoById(videoId)
+        if (existingVideo != null) {
+            val updated = existingVideo.copy(publishedTimeAgo = newTimeAgo.trim())
+            addOrUpdateVideo(updated, showOnDashboard = StudioRepository.latestPublishedContent.any { it.id == videoId })
+        }
+    }
+
+    // Video Analytics Generic Metric Overrides
+    private const val KEY_PREFIX_VIDEO_METRIC = "v_metric_"
+    var videoMetricsVersion by mutableStateOf(0)
+        private set
+
+    fun getVideoMetricOverride(videoId: String, metricKey: String, defaultVal: String): String {
+        return prefs?.getString("${KEY_PREFIX_VIDEO_METRIC}${videoId}_${metricKey}", defaultVal) ?: defaultVal
+    }
+
+    fun setVideoMetricOverride(videoId: String, metricKey: String, value: String) {
+        prefs?.edit()
+            ?.putString("${KEY_PREFIX_VIDEO_METRIC}${videoId}_${metricKey}", value)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+        videoMetricsVersion++
     }
 
     // --- Exact Sum Analytics Distribution Algorithm ---

@@ -27,12 +27,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.StudioRepository
 import com.example.data.SupabaseClient
+import com.example.data.local.LocalAdminStore
 import com.example.model.ChannelProfile
+import com.example.ui.components.editableDoubleTap
 import com.example.ui.theme.*
+import com.example.util.ImageStorageHelper
 import kotlinx.coroutines.launch
 
 @Composable
@@ -49,6 +55,25 @@ fun AccountScreen(
     var inputAnonKey by remember { mutableStateOf(SupabaseClient.anonKey) }
     var currentChannel by remember { mutableStateOf(StudioRepository.currentProfile) }
     var showSnackbarMessage by remember { mutableStateOf<String?>(null) }
+
+    val avatarGalleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                val localPath = ImageStorageHelper.saveUriToInternalStorage(
+                    context,
+                    it,
+                    "channel_avatar_${System.currentTimeMillis()}.jpg"
+                )
+                if (localPath != null) {
+                    LocalAdminStore.updateChannelAvatarUri(localPath)
+                    currentChannel = StudioRepository.currentProfile
+                    showSnackbarMessage = "Channel avatar updated"
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -106,7 +131,8 @@ fun AccountScreen(
                         modifier = Modifier
                             .size(72.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFFFEB3B)),
+                            .background(Color(0xFFFFEB3B))
+                            .clickable { avatarGalleryLauncher.launch("image/*") },
                         contentAlignment = Alignment.Center
                     ) {
                         val avatarUri = currentChannel.avatarUri ?: StudioRepository.danielProfile.avatarUri
@@ -129,23 +155,39 @@ fun AccountScreen(
                             text = currentChannel.name,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.textPrimary
+                            color = colors.textPrimary,
+                            modifier = Modifier.editableDoubleTap(
+                                currentValue = currentChannel.name,
+                                label = "Channel Name",
+                                onSave = { newName ->
+                                    LocalAdminStore.updateChannelName(newName)
+                                    currentChannel = StudioRepository.currentProfile
+                                }
+                            )
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = currentChannel.handle,
                             fontSize = 14.sp,
-                            color = colors.textSecondary
+                            color = colors.textSecondary,
+                            modifier = Modifier.editableDoubleTap(
+                                currentValue = currentChannel.handle,
+                                label = "Channel Handle",
+                                onSave = { newHandle ->
+                                    LocalAdminStore.updateChannelHandle(newHandle)
+                                    currentChannel = StudioRepository.currentProfile
+                                }
+                            )
                         )
                     }
 
                     IconButton(
-                        onClick = { showSnackbarMessage = "Edit channel profile" },
+                        onClick = { avatarGalleryLauncher.launch("image/*") },
                         modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Profile",
+                            contentDescription = "Change Channel Avatar",
                             tint = colors.textPrimary,
                             modifier = Modifier.size(20.dp)
                         )

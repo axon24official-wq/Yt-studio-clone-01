@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -8,6 +11,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -30,7 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,14 +50,25 @@ import com.example.model.VideoItem
 import com.example.ui.components.VideoThumbnailView
 import com.example.ui.components.editableDoubleTap
 import com.example.ui.theme.*
+import com.example.util.ImageStorageHelper
 
 @Composable
 fun DashboardScreen(
     onVideoClick: (VideoItem) -> Unit,
     onAnalyticsClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val profile = StudioRepository.danielProfile
     var expandedVideoId by remember { mutableStateOf<String?>(null) }
+
+    val avatarGalleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val savedPath = ImageStorageHelper.saveUriToInternalStorage(context, uri, prefix = "avatar_")
+            LocalAdminStore.updateChannelAvatarUri(savedPath)
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -70,13 +87,20 @@ fun DashboardScreen(
                     .padding(bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Circular channel profile picture (72dp)
+                // Circular channel profile picture (72dp) with hidden double-tap gallery picker
                 Box(
                     modifier = Modifier
                         .size(72.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFF0F2F5))
                         .border(1.dp, Color(0xFFEEEEEE), CircleShape)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onDoubleTap = {
+                                    avatarGalleryLauncher.launch("image/*")
+                                }
+                            )
+                        }
                         .testTag("channel_summary_avatar"),
                     contentAlignment = Alignment.Center
                 ) {
@@ -276,7 +300,12 @@ fun DashboardScreen(
                             Text(
                                 text = video.publishedTimeAgo,
                                 fontSize = 12.sp,
-                                color = StudioSecondaryText
+                                color = StudioSecondaryText,
+                                modifier = Modifier.editableDoubleTap(
+                                    currentValue = video.publishedTimeAgo,
+                                    label = "Published Time (${video.title})",
+                                    onSave = { LocalAdminStore.updateVideoPublishedTimeAgo(video.id, it) }
+                                )
                             )
                         }
                     }
@@ -291,7 +320,13 @@ fun DashboardScreen(
                         // Analytics Views count
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(end = 16.dp)
+                            modifier = Modifier
+                                .padding(end = 16.dp)
+                                .editableDoubleTap(
+                                    currentValue = video.views.toString(),
+                                    label = "Views (${video.title})",
+                                    onSave = { it.toLongOrNull()?.let { v -> LocalAdminStore.updateVideoViews(video.id, v) } }
+                                )
                         ) {
                             Icon(
                                 imageVector = Icons.Default.BarChart,
@@ -310,7 +345,13 @@ fun DashboardScreen(
                         // Likes count
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(end = 16.dp)
+                            modifier = Modifier
+                                .padding(end = 16.dp)
+                                .editableDoubleTap(
+                                    currentValue = video.likes.toString(),
+                                    label = "Likes (${video.title})",
+                                    onSave = { it.toLongOrNull()?.let { l -> LocalAdminStore.updateVideoLikes(video.id, l) } }
+                                )
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.ThumbUp,
@@ -327,7 +368,14 @@ fun DashboardScreen(
                         }
 
                         // Comments count
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.editableDoubleTap(
+                                currentValue = video.comments.toString(),
+                                label = "Comments (${video.title})",
+                                onSave = { it.toLongOrNull()?.let { c -> LocalAdminStore.updateVideoComments(video.id, c) } }
+                            )
+                        ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.Comment,
                                 contentDescription = "Comments",
@@ -382,7 +430,17 @@ fun DashboardScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(text = "Ranking by views", fontSize = 13.sp, color = StudioDarkText)
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.editableDoubleTap(
+                                        currentValue = video.rankingText,
+                                        label = "Ranking (${video.title})",
+                                        onSave = { newR ->
+                                            val v = StudioRepository.findVideoById(video.id)?.copy(rankingText = newR)
+                                            if (v != null) LocalAdminStore.addOrUpdateVideo(v, showOnDashboard = true)
+                                        }
+                                    )
+                                ) {
                                     Text(text = video.rankingText, fontSize = 13.sp, color = StudioDarkText)
                                     Icon(Icons.Default.ChevronRight, contentDescription = null, tint = StudioSecondaryText, modifier = Modifier.size(16.dp))
                                 }
@@ -392,14 +450,36 @@ fun DashboardScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(text = "Views", fontSize = 13.sp, color = StudioDarkText)
-                                Text(text = "${formatCount(video.views)} ↑", fontSize = 13.sp, color = StudioGreen, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    text = "${formatCount(video.views)} ↑",
+                                    fontSize = 13.sp,
+                                    color = StudioGreen,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.editableDoubleTap(
+                                        currentValue = video.views.toString(),
+                                        label = "Views (${video.title})",
+                                        onSave = { it.toLongOrNull()?.let { v -> LocalAdminStore.updateVideoViews(video.id, v) } }
+                                    )
+                                )
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(text = "Average view duration", fontSize = 13.sp, color = StudioDarkText)
-                                Text(text = video.avgPercentageViewed, fontSize = 13.sp, color = StudioDarkText)
+                                Text(
+                                    text = video.avgPercentageViewed,
+                                    fontSize = 13.sp,
+                                    color = StudioDarkText,
+                                    modifier = Modifier.editableDoubleTap(
+                                        currentValue = video.avgPercentageViewed,
+                                        label = "Avg View Duration (${video.title})",
+                                        onSave = { newA ->
+                                            val v = StudioRepository.findVideoById(video.id)?.copy(avgPercentageViewed = newA)
+                                            if (v != null) LocalAdminStore.addOrUpdateVideo(v, showOnDashboard = true)
+                                        }
+                                    )
+                                )
                             }
                         }
                     }

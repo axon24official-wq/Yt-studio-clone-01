@@ -238,6 +238,76 @@ data class VideoAnalyticsData(
             }
         }
     }
+
+    fun withOverrides(videoId: String): VideoAnalyticsData {
+        val headline = LocalAdminStore.getVideoMetricOverride(videoId, "headlineText", headlineText)
+        val viewsStr = LocalAdminStore.getVideoMetricOverride(videoId, "formattedViews", formattedViews)
+        val watchTime = LocalAdminStore.getVideoMetricOverride(videoId, "watchTimeHoursText", watchTimeHoursText)
+        val subs = LocalAdminStore.getVideoMetricOverride(videoId, "subscribersText", subscribersText)
+        val avgDur = LocalAdminStore.getVideoMetricOverride(videoId, "avgRetentionDuration", avgRetentionDuration)
+        val avgPct = LocalAdminStore.getVideoMetricOverride(videoId, "avgRetentionPercent", avgRetentionPercent)
+        val rtViews = LocalAdminStore.getVideoMetricOverride(videoId, "realTimeViews", realTimeViews.toString()).toLongOrNull() ?: realTimeViews
+        val imps = LocalAdminStore.getVideoMetricOverride(videoId, "impressionsFormatted", impressionsFormatted)
+        val ctr = LocalAdminStore.getVideoMetricOverride(videoId, "ctrText", ctrText)
+        val uv = LocalAdminStore.getVideoMetricOverride(videoId, "uniqueViewers", uniqueViewers.toString()).toLongOrNull() ?: uniqueViewers
+        val hp = LocalAdminStore.getVideoMetricOverride(videoId, "hypePoints", hypePoints.toString()).toIntOrNull() ?: hypePoints
+        val hy = LocalAdminStore.getVideoMetricOverride(videoId, "hypes", hypes.toString()).toIntOrNull() ?: hypes
+        val lp = LocalAdminStore.getVideoMetricOverride(videoId, "likesPercentText", likesPercentText)
+        val calp = LocalAdminStore.getVideoMetricOverride(videoId, "channelAverageLikesPercent", channelAverageLikesPercent)
+        val dmp = LocalAdminStore.getVideoMetricOverride(videoId, "deviceMobilePercent", deviceMobilePercent)
+        val dcp = LocalAdminStore.getVideoMetricOverride(videoId, "deviceComputerPercent", deviceComputerPercent)
+        val pubDate = LocalAdminStore.getVideoMetricOverride(videoId, "publishedDateFormatted", publishedDateFormatted)
+        val vis = LocalAdminStore.getVideoMetricOverride(videoId, "visibility", visibility)
+        val notc = LocalAdminStore.getVideoMetricOverride(videoId, "notices", notices)
+        val revUsd = LocalAdminStore.getVideoMetricOverride(videoId, "estimatedRevenueUsd", estimatedRevenueUsd)
+        val revInr = LocalAdminStore.getVideoMetricOverride(videoId, "estimatedRevenueInr", estimatedRevenueInr)
+        val rUsd = LocalAdminStore.getVideoMetricOverride(videoId, "rpmUsd", rpmUsd)
+        val rInr = LocalAdminStore.getVideoMetricOverride(videoId, "rpmInr", rpmInr)
+        val cUsd = LocalAdminStore.getVideoMetricOverride(videoId, "cpmUsd", cpmUsd)
+        val cInr = LocalAdminStore.getVideoMetricOverride(videoId, "cpmInr", cpmInr)
+        val wpa = LocalAdminStore.getVideoMetricOverride(videoId, "watchPageAdsPercent", watchPageAdsPercent)
+        val prem = LocalAdminStore.getVideoMetricOverride(videoId, "premiumPercent", premiumPercent)
+        val skip = LocalAdminStore.getVideoMetricOverride(videoId, "skippableAdsPercent", skippableAdsPercent)
+        val bump = LocalAdminStore.getVideoMetricOverride(videoId, "bumperAdsPercent", bumperAdsPercent)
+        val nonSkip = LocalAdminStore.getVideoMetricOverride(videoId, "nonSkippableAdsPercent", nonSkippableAdsPercent)
+        val disp = LocalAdminStore.getVideoMetricOverride(videoId, "displayAdsPercent", displayAdsPercent)
+        val ytp = LocalAdminStore.getVideoMetricOverride(videoId, "youtubePremiumAdPercent", youtubePremiumAdPercent)
+
+        return this.copy(
+            headlineText = headline,
+            formattedViews = viewsStr,
+            watchTimeHoursText = watchTime,
+            subscribersText = subs,
+            avgRetentionDuration = avgDur,
+            avgRetentionPercent = avgPct,
+            realTimeViews = rtViews,
+            impressionsFormatted = imps,
+            ctrText = ctr,
+            uniqueViewers = uv,
+            hypePoints = hp,
+            hypes = hy,
+            likesPercentText = lp,
+            channelAverageLikesPercent = calp,
+            deviceMobilePercent = dmp,
+            deviceComputerPercent = dcp,
+            publishedDateFormatted = pubDate,
+            visibility = vis,
+            notices = notc,
+            estimatedRevenueUsd = revUsd,
+            estimatedRevenueInr = revInr,
+            rpmUsd = rUsd,
+            rpmInr = rInr,
+            cpmUsd = cUsd,
+            cpmInr = cInr,
+            watchPageAdsPercent = wpa,
+            premiumPercent = prem,
+            skippableAdsPercent = skip,
+            bumperAdsPercent = bump,
+            nonSkippableAdsPercent = nonSkip,
+            displayAdsPercent = disp,
+            youtubePremiumAdPercent = ytp
+        )
+    }
 }
 
 @Composable
@@ -251,8 +321,9 @@ fun IndividualVideoAnalyticsScreen(
     var selectedAnalyticsTab by rememberSaveable { mutableStateOf(initialTab) }
     var selectedCurrency by rememberSaveable { mutableStateOf("USD") }
 
-    val analytics = remember(video.id, video.views, video.likes) {
-        VideoAnalyticsData.fromVideo(video)
+    val metricsVersion = LocalAdminStore.videoMetricsVersion
+    val analytics = remember(video.id, video.views, video.likes, metricsVersion) {
+        VideoAnalyticsData.fromVideo(video).withOverrides(video.id)
     }
 
     // Seamless back handling: from performance view back to analytics, or back to previous screen
@@ -390,7 +461,12 @@ fun IndividualVideoAnalyticsScreen(
                                     text = video.duration.ifBlank { "8:53" },
                                     color = Color.White,
                                     fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.editableDoubleTap(
+                                        currentValue = video.duration,
+                                        label = "Video Duration",
+                                        onSave = { LocalAdminStore.updateVideoDuration(video.id, it) }
+                                    )
                                 )
                             }
                         }
@@ -427,7 +503,12 @@ fun IndividualVideoAnalyticsScreen(
                             Text(
                                 text = analytics.publishedDateFormatted,
                                 fontSize = 13.sp,
-                                color = Color(0xFF606060)
+                                color = Color(0xFF606060),
+                                modifier = Modifier.editableDoubleTap(
+                                    currentValue = analytics.publishedDateFormatted,
+                                    label = "Published Info",
+                                    onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "publishedDateFormatted", it) }
+                                )
                             )
                         }
                     }
@@ -466,7 +547,12 @@ fun IndividualVideoAnalyticsScreen(
                                 Text(
                                     text = analytics.visibility,
                                     fontSize = 14.sp,
-                                    color = Color(0xFF606060)
+                                    color = Color(0xFF606060),
+                                    modifier = Modifier.editableDoubleTap(
+                                        currentValue = analytics.visibility,
+                                        label = "Visibility",
+                                        onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "visibility", it) }
+                                    )
                                 )
                             }
 
@@ -489,7 +575,12 @@ fun IndividualVideoAnalyticsScreen(
                                 Text(
                                     text = analytics.notices,
                                     fontSize = 14.sp,
-                                    color = Color(0xFF606060)
+                                    color = Color(0xFF606060),
+                                    modifier = Modifier.editableDoubleTap(
+                                        currentValue = analytics.notices,
+                                        label = "Notices",
+                                        onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "notices", it) }
+                                    )
                                 )
                             }
                         }
@@ -581,7 +672,12 @@ fun IndividualVideoAnalyticsScreen(
                                             text = analytics.watchTimeHoursText,
                                             fontSize = 18.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF0F0F0F)
+                                            color = Color(0xFF0F0F0F),
+                                            modifier = Modifier.editableDoubleTap(
+                                                currentValue = analytics.watchTimeHoursText,
+                                                label = "Watch Time (Hours)",
+                                                onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "watchTimeHoursText", it) }
+                                            )
                                         )
                                     }
                                 }
@@ -600,7 +696,18 @@ fun IndividualVideoAnalyticsScreen(
                                                 text = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
                                                 fontSize = 18.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF2E7D32)
+                                                color = Color(0xFF2E7D32),
+                                                modifier = Modifier.editableDoubleTap(
+                                                    currentValue = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
+                                                    label = "Estimated Revenue",
+                                                    onSave = {
+                                                        if (selectedCurrency == "USD") {
+                                                            LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", it)
+                                                        } else {
+                                                            LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueInr", it)
+                                                        }
+                                                    }
+                                                )
                                             )
                                         }
                                     }
@@ -731,7 +838,18 @@ fun IndividualVideoAnalyticsScreen(
                                             text = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
                                             fontSize = 24.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF2E7D32)
+                                            color = Color(0xFF2E7D32),
+                                            modifier = Modifier.editableDoubleTap(
+                                                currentValue = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
+                                                label = "Estimated Revenue",
+                                                onSave = {
+                                                    if (selectedCurrency == "USD") {
+                                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", it)
+                                                    } else {
+                                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueInr", it)
+                                                    }
+                                                }
+                                            )
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
@@ -977,7 +1095,13 @@ fun IndividualVideoAnalyticsScreen(
                             color = Color(0xFF0F0F0F),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .editableDoubleTap(
+                                    currentValue = video.title,
+                                    label = "Video Title",
+                                    onSave = { LocalAdminStore.updateVideoTitle(video.id, it) }
+                                )
                         )
 
                         IconButton(onClick = { currentViewMode = VideoViewMode.PERFORMANCE }) {
@@ -1058,7 +1182,12 @@ fun IndividualVideoAnalyticsScreen(
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F0F0F),
-                                lineHeight = 22.sp
+                                lineHeight = 22.sp,
+                                modifier = Modifier.editableDoubleTap(
+                                    currentValue = analytics.headlineText,
+                                    label = "Overview Headline",
+                                    onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "headlineText", it) }
+                                )
                             )
                         }
 
@@ -1075,7 +1204,7 @@ fun IndividualVideoAnalyticsScreen(
                                     when (page) {
                                         0 -> {
                                             // Card 1: Views Stepped Chart Card
-                                            Card(
+                                             Card(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 shape = RoundedCornerShape(12.dp),
                                                 colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -1085,7 +1214,22 @@ fun IndividualVideoAnalyticsScreen(
                                                 Column(modifier = Modifier.padding(16.dp)) {
                                                     Text("Views", fontSize = 13.sp, color = Color(0xFF606060))
                                                     Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(analytics.formattedViews, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                                    Text(
+                                                        text = analytics.formattedViews,
+                                                        fontSize = 24.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF0F0F0F),
+                                                        modifier = Modifier.editableDoubleTap(
+                                                            currentValue = analytics.formattedViews,
+                                                            label = "Views",
+                                                            onSave = {
+                                                                LocalAdminStore.setVideoMetricOverride(video.id, "formattedViews", it)
+                                                                it.replace(",", "").toLongOrNull()?.let { v ->
+                                                                    LocalAdminStore.updateVideoViews(video.id, v)
+                                                                }
+                                                            }
+                                                        )
+                                                    )
                                                     Spacer(modifier = Modifier.height(14.dp))
 
                                                     // Stepped Line Chart with horizontal grid lines
@@ -1163,7 +1307,17 @@ fun IndividualVideoAnalyticsScreen(
                                                 Column(modifier = Modifier.padding(16.dp)) {
                                                     Text("Watch time (hours)", fontSize = 13.sp, color = Color(0xFF606060))
                                                     Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(analytics.watchTimeHoursText, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                                    Text(
+                                                        text = analytics.watchTimeHoursText,
+                                                        fontSize = 24.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF0F0F0F),
+                                                        modifier = Modifier.editableDoubleTap(
+                                                            currentValue = analytics.watchTimeHoursText,
+                                                            label = "Watch Time (Hours)",
+                                                            onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "watchTimeHoursText", it) }
+                                                        )
+                                                    )
                                                     Spacer(modifier = Modifier.height(14.dp))
 
                                                     Row(modifier = Modifier.fillMaxWidth()) {
@@ -1228,7 +1382,17 @@ fun IndividualVideoAnalyticsScreen(
                                                 Column(modifier = Modifier.padding(16.dp)) {
                                                     Text("Subscribers", fontSize = 13.sp, color = Color(0xFF606060))
                                                     Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(analytics.subscribersText, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                                    Text(
+                                                        text = analytics.subscribersText,
+                                                        fontSize = 24.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF0F0F0F),
+                                                        modifier = Modifier.editableDoubleTap(
+                                                            currentValue = analytics.subscribersText,
+                                                            label = "Subscribers Gain",
+                                                            onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "subscribersText", it) }
+                                                        )
+                                                    )
                                                     Spacer(modifier = Modifier.height(14.dp))
 
                                                     Row(modifier = Modifier.fillMaxWidth()) {
@@ -1309,7 +1473,18 @@ fun IndividualVideoAnalyticsScreen(
                                                         text = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
                                                         fontSize = 24.sp,
                                                         fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF2E7D32)
+                                                        color = Color(0xFF2E7D32),
+                                                        modifier = Modifier.editableDoubleTap(
+                                                            currentValue = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
+                                                            label = "Estimated Revenue",
+                                                            onSave = {
+                                                                if (selectedCurrency == "USD") {
+                                                                    LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", it)
+                                                                } else {
+                                                                    LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueInr", it)
+                                                                }
+                                                            }
+                                                        )
                                                     )
                                                     Spacer(modifier = Modifier.height(14.dp))
 
@@ -1399,7 +1574,9 @@ fun IndividualVideoAnalyticsScreen(
                             AudienceRetentionCard(
                                 videoDuration = video.duration,
                                 avgDuration = analytics.avgRetentionDuration,
-                                avgPercent = analytics.avgRetentionPercent
+                                avgPercent = analytics.avgRetentionPercent,
+                                onSaveDuration = { LocalAdminStore.setVideoMetricOverride(video.id, "avgRetentionDuration", it) },
+                                onSavePercent = { LocalAdminStore.setVideoMetricOverride(video.id, "avgRetentionPercent", it) }
                             )
                         }
 
@@ -1415,7 +1592,17 @@ fun IndividualVideoAnalyticsScreen(
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Text("Real time", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F0F0F))
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("${analytics.realTimeViews}", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                    Text(
+                                        text = "${analytics.realTimeViews}",
+                                        fontSize = 24.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F0F0F),
+                                        modifier = Modifier.editableDoubleTap(
+                                            currentValue = analytics.realTimeViews.toString(),
+                                            label = "Real-time Views (48h)",
+                                            onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "realTimeViews", it) }
+                                        )
+                                    )
                                     Text("Views • 48 hours", fontSize = 12.sp, color = Color(0xFF606060))
                                     Spacer(modifier = Modifier.height(14.dp))
                                     Text("Nothing to show for these dates", fontSize = 13.sp, color = Color(0xFF909090))
@@ -1442,7 +1629,17 @@ fun IndividualVideoAnalyticsScreen(
                                         Column(modifier = Modifier.padding(14.dp)) {
                                             Text("Impressions", fontSize = 12.sp, color = Color(0xFF606060))
                                             Spacer(modifier = Modifier.height(4.dp))
-                                            Text(analytics.impressionsFormatted, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                            Text(
+                                                text = analytics.impressionsFormatted,
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF0F0F0F),
+                                                modifier = Modifier.editableDoubleTap(
+                                                    currentValue = analytics.impressionsFormatted,
+                                                    label = "Impressions",
+                                                    onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "impressionsFormatted", it) }
+                                                )
+                                            )
                                         }
                                     }
 
@@ -1456,7 +1653,17 @@ fun IndividualVideoAnalyticsScreen(
                                         Column(modifier = Modifier.padding(14.dp)) {
                                             Text("Impression CTR", fontSize = 12.sp, color = Color(0xFF606060))
                                             Spacer(modifier = Modifier.height(4.dp))
-                                            Text(analytics.ctrText, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                            Text(
+                                                text = analytics.ctrText,
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF0F0F0F),
+                                                modifier = Modifier.editableDoubleTap(
+                                                    currentValue = analytics.ctrText,
+                                                    label = "Impression CTR",
+                                                    onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "ctrText", it) }
+                                                )
+                                            )
                                         }
                                     }
                                 }
@@ -1475,7 +1682,17 @@ fun IndividualVideoAnalyticsScreen(
                                         Column(modifier = Modifier.padding(14.dp)) {
                                             Text("Views", fontSize = 12.sp, color = Color(0xFF606060))
                                             Spacer(modifier = Modifier.height(4.dp))
-                                            Text(analytics.formattedViews, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                            Text(
+                                                text = analytics.formattedViews,
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF0F0F0F),
+                                                modifier = Modifier.editableDoubleTap(
+                                                    currentValue = analytics.formattedViews,
+                                                    label = "Views",
+                                                    onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "formattedViews", it) }
+                                                )
+                                            )
                                         }
                                     }
 
@@ -1489,7 +1706,17 @@ fun IndividualVideoAnalyticsScreen(
                                         Column(modifier = Modifier.padding(14.dp)) {
                                             Text("Unique viewers", fontSize = 12.sp, color = Color(0xFF606060))
                                             Spacer(modifier = Modifier.height(4.dp))
-                                            Text("${analytics.uniqueViewers}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                            Text(
+                                                text = "${analytics.uniqueViewers}",
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF0F0F0F),
+                                                modifier = Modifier.editableDoubleTap(
+                                                    currentValue = analytics.uniqueViewers.toString(),
+                                                    label = "Unique Viewers",
+                                                    onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "uniqueViewers", it) }
+                                                )
+                                            )
                                         }
                                     }
                                 }
@@ -1524,11 +1751,31 @@ fun IndividualVideoAnalyticsScreen(
                                     Spacer(modifier = Modifier.height(14.dp))
                                     Row(modifier = Modifier.fillMaxWidth()) {
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text("${analytics.hypePoints}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                            Text(
+                                                text = "${analytics.hypePoints}",
+                                                fontSize = 22.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF0F0F0F),
+                                                modifier = Modifier.editableDoubleTap(
+                                                    currentValue = analytics.hypePoints.toString(),
+                                                    label = "Hype Points",
+                                                    onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "hypePoints", it) }
+                                                )
+                                            )
                                             Text("Hype points", fontSize = 12.sp, color = Color(0xFF606060))
                                         }
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text("${analytics.hypes}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                            Text(
+                                                text = "${analytics.hypes}",
+                                                fontSize = 22.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF0F0F0F),
+                                                modifier = Modifier.editableDoubleTap(
+                                                    currentValue = analytics.hypes.toString(),
+                                                    label = "Hypes",
+                                                    onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "hypes", it) }
+                                                )
+                                            )
                                             Text("Hypes", fontSize = 12.sp, color = Color(0xFF606060))
                                         }
                                     }
@@ -1548,7 +1795,17 @@ fun IndividualVideoAnalyticsScreen(
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Text("Watch time (hours)", fontSize = 13.sp, color = Color(0xFF606060))
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text(analytics.watchTimeHoursText, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                    Text(
+                                        text = analytics.watchTimeHoursText,
+                                        fontSize = 24.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F0F0F),
+                                        modifier = Modifier.editableDoubleTap(
+                                            currentValue = analytics.watchTimeHoursText,
+                                            label = "Watch Time (Hours)",
+                                            onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "watchTimeHoursText", it) }
+                                        )
+                                    )
                                 }
                             }
                         }
@@ -1558,7 +1815,9 @@ fun IndividualVideoAnalyticsScreen(
                             AudienceRetentionCard(
                                 videoDuration = video.duration,
                                 avgDuration = analytics.avgRetentionDuration,
-                                avgPercent = analytics.avgRetentionPercent
+                                avgPercent = analytics.avgRetentionPercent,
+                                onSaveDuration = { LocalAdminStore.setVideoMetricOverride(video.id, "avgRetentionDuration", it) },
+                                onSavePercent = { LocalAdminStore.setVideoMetricOverride(video.id, "avgRetentionPercent", it) }
                             )
                         }
 
@@ -1590,7 +1849,17 @@ fun IndividualVideoAnalyticsScreen(
                                             modifier = Modifier.weight(1f)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(analytics.likesPercentText, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                        Text(
+                                            text = analytics.likesPercentText,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0F0F0F),
+                                            modifier = Modifier.editableDoubleTap(
+                                                currentValue = analytics.likesPercentText,
+                                                label = "Likes %",
+                                                onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "likesPercentText", it) }
+                                            )
+                                        )
                                     }
 
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -1601,7 +1870,17 @@ fun IndividualVideoAnalyticsScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text("Channel average", fontSize = 13.sp, color = Color(0xFF606060))
-                                        Text(analytics.channelAverageLikesPercent, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                        Text(
+                                            text = analytics.channelAverageLikesPercent,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0F0F0F),
+                                            modifier = Modifier.editableDoubleTap(
+                                                currentValue = analytics.channelAverageLikesPercent,
+                                                label = "Channel Average Likes %",
+                                                onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "channelAverageLikesPercent", it) }
+                                            )
+                                        )
                                     }
 
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -1643,7 +1922,17 @@ fun IndividualVideoAnalyticsScreen(
                                     Column(modifier = Modifier.padding(14.dp)) {
                                         Text("Unique viewers", fontSize = 12.sp, color = Color(0xFF606060))
                                         Spacer(modifier = Modifier.height(4.dp))
-                                        Text("${analytics.uniqueViewers}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                        Text(
+                                            text = "${analytics.uniqueViewers}",
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0F0F0F),
+                                            modifier = Modifier.editableDoubleTap(
+                                                currentValue = "${analytics.uniqueViewers}",
+                                                label = "Unique Viewers",
+                                                onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "uniqueViewers", it) }
+                                            )
+                                        )
                                     }
                                 }
 
@@ -1657,7 +1946,17 @@ fun IndividualVideoAnalyticsScreen(
                                     Column(modifier = Modifier.padding(14.dp)) {
                                         Text("Subscribers", fontSize = 12.sp, color = Color(0xFF606060))
                                         Spacer(modifier = Modifier.height(4.dp))
-                                        Text(analytics.subscribersText, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F0F0F))
+                                        Text(
+                                            text = analytics.subscribersText,
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0F0F0F),
+                                            modifier = Modifier.editableDoubleTap(
+                                                currentValue = analytics.subscribersText,
+                                                label = "Subscribers",
+                                                onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "subscribersText", it) }
+                                            )
+                                        )
                                     }
                                 }
                             }
@@ -1715,7 +2014,17 @@ fun IndividualVideoAnalyticsScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("Mobile", fontSize = 13.sp, color = Color(0xFF0F0F0F))
                                         Spacer(modifier = Modifier.weight(1f))
-                                        Text(analytics.deviceMobilePercent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F0F0F))
+                                        Text(
+                                            text = analytics.deviceMobilePercent,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color(0xFF0F0F0F),
+                                            modifier = Modifier.editableDoubleTap(
+                                                currentValue = analytics.deviceMobilePercent,
+                                                label = "Mobile Watch Time %",
+                                                onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "deviceMobilePercent", it) }
+                                            )
+                                        )
                                     }
 
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -1725,7 +2034,17 @@ fun IndividualVideoAnalyticsScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("Computer", fontSize = 13.sp, color = Color(0xFF0F0F0F))
                                         Spacer(modifier = Modifier.weight(1f))
-                                        Text(analytics.deviceComputerPercent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F0F0F))
+                                        Text(
+                                            text = analytics.deviceComputerPercent,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color(0xFF0F0F0F),
+                                            modifier = Modifier.editableDoubleTap(
+                                                currentValue = analytics.deviceComputerPercent,
+                                                label = "Computer Watch Time %",
+                                                onSave = { LocalAdminStore.setVideoMetricOverride(video.id, "deviceComputerPercent", it) }
+                                            )
+                                        )
                                     }
                                 }
                             }
@@ -1744,7 +2063,14 @@ fun IndividualVideoAnalyticsScreen(
                             RevenueEstimatedEarningsCard(
                                 analytics = analytics,
                                 selectedCurrency = selectedCurrency,
-                                onCurrencyChange = { selectedCurrency = it }
+                                onCurrencyChange = { selectedCurrency = it },
+                                onSavePrimary = { newVal ->
+                                    if (selectedCurrency == "USD") {
+                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", newVal)
+                                    } else {
+                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueInr", newVal)
+                                    }
+                                }
                             )
                         }
 
@@ -1752,7 +2078,14 @@ fun IndividualVideoAnalyticsScreen(
                         item {
                             RevenueRpmCard(
                                 analytics = analytics,
-                                selectedCurrency = selectedCurrency
+                                selectedCurrency = selectedCurrency,
+                                onSaveRpm = { newVal ->
+                                    if (selectedCurrency == "USD") {
+                                        LocalAdminStore.setVideoMetricOverride(video.id, "rpmUsd", newVal)
+                                    } else {
+                                        LocalAdminStore.setVideoMetricOverride(video.id, "rpmInr", newVal)
+                                    }
+                                }
                             )
                         }
 
@@ -1760,21 +2093,33 @@ fun IndividualVideoAnalyticsScreen(
                         item {
                             RevenueCpmCard(
                                 analytics = analytics,
-                                selectedCurrency = selectedCurrency
+                                selectedCurrency = selectedCurrency,
+                                onSaveCpm = { newVal ->
+                                    if (selectedCurrency == "USD") {
+                                        LocalAdminStore.setVideoMetricOverride(video.id, "cpmUsd", newVal)
+                                    } else {
+                                        LocalAdminStore.setVideoMetricOverride(video.id, "cpmInr", newVal)
+                                    }
+                                }
                             )
                         }
 
                         // 4. How you make money / Revenue Sources Card (Watch Page Ads, YouTube Premium)
                         item {
                             RevenueSourcesCard(
-                                analytics = analytics
+                                analytics = analytics,
+                                onSaveWatchPageAds = { LocalAdminStore.setVideoMetricOverride(video.id, "watchPageAdsPercent", it) },
+                                onSavePremium = { LocalAdminStore.setVideoMetricOverride(video.id, "premiumPercent", it) }
                             )
                         }
 
                         // 5. Ad Types / Formats Card (Skippable, Bumper, Non-skippable, Display, Premium)
                         item {
                             RevenueAdTypesCard(
-                                analytics = analytics
+                                analytics = analytics,
+                                onSaveAdType = { key, value ->
+                                    LocalAdminStore.setVideoMetricOverride(video.id, key, value)
+                                }
                             )
                         }
 
@@ -1782,7 +2127,14 @@ fun IndividualVideoAnalyticsScreen(
                         item {
                             RevenueMonthlyCard(
                                 analytics = analytics,
-                                selectedCurrency = selectedCurrency
+                                selectedCurrency = selectedCurrency,
+                                onSaveMonthlyRevenue = { newVal ->
+                                    if (selectedCurrency == "USD") {
+                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", newVal)
+                                    } else {
+                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueInr", newVal)
+                                    }
+                                }
                             )
                         }
                     }
@@ -1796,7 +2148,9 @@ fun IndividualVideoAnalyticsScreen(
 fun AudienceRetentionCard(
     videoDuration: String,
     avgDuration: String = "0:09",
-    avgPercent: String = "1.8%"
+    avgPercent: String = "1.8%",
+    onSaveDuration: (String) -> Unit = {},
+    onSavePercent: (String) -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1819,13 +2173,45 @@ fun AudienceRetentionCard(
                     shape = RoundedCornerShape(4.dp),
                     color = Color(0xFFF0F2F5)
                 ) {
-                    Text(
-                        text = "$avgDuration ($avgPercent)",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F0F0F),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = avgDuration,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F0F0F),
+                            modifier = Modifier.editableDoubleTap(
+                                currentValue = avgDuration,
+                                label = "Avg Retention Duration",
+                                onSave = onSaveDuration
+                            )
+                        )
+                        Text(
+                            text = " (",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F0F0F)
+                        )
+                        Text(
+                            text = avgPercent,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F0F0F),
+                            modifier = Modifier.editableDoubleTap(
+                                currentValue = avgPercent,
+                                label = "Avg Retention Percent",
+                                onSave = onSavePercent
+                            )
+                        )
+                        Text(
+                            text = ")",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F0F0F)
+                        )
+                    }
                 }
             }
 
@@ -1950,7 +2336,8 @@ fun TrafficSourceReportCard(
 fun RevenueEstimatedEarningsCard(
     analytics: VideoAnalyticsData,
     selectedCurrency: String,
-    onCurrencyChange: (String) -> Unit
+    onCurrencyChange: (String) -> Unit,
+    onSavePrimary: (String) -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -2042,7 +2429,12 @@ fun RevenueEstimatedEarningsCard(
                 text = primaryValue,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF0F0F0F)
+                color = Color(0xFF0F0F0F),
+                modifier = Modifier.editableDoubleTap(
+                    currentValue = primaryValue,
+                    label = if (selectedCurrency == "USD") "Estimated Revenue (USD)" else "Estimated Revenue (INR)",
+                    onSave = onSavePrimary
+                )
             )
             Text(
                 text = "≈ $secondaryValue",
@@ -2131,7 +2523,8 @@ fun RevenueEstimatedEarningsCard(
 @Composable
 fun RevenueRpmCard(
     analytics: VideoAnalyticsData,
-    selectedCurrency: String
+    selectedCurrency: String,
+    onSaveRpm: (String) -> Unit = {}
 ) {
     var showRpmInfoDialog by remember { mutableStateOf(false) }
 
@@ -2198,7 +2591,12 @@ fun RevenueRpmCard(
                 text = rpmVal,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF0F0F0F)
+                color = Color(0xFF0F0F0F),
+                modifier = Modifier.editableDoubleTap(
+                    currentValue = rpmVal,
+                    label = if (selectedCurrency == "USD") "RPM (USD)" else "RPM (INR)",
+                    onSave = onSaveRpm
+                )
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -2243,7 +2641,8 @@ fun RevenueRpmCard(
 @Composable
 fun RevenueCpmCard(
     analytics: VideoAnalyticsData,
-    selectedCurrency: String
+    selectedCurrency: String,
+    onSaveCpm: (String) -> Unit = {}
 ) {
     var showCpmInfoDialog by remember { mutableStateOf(false) }
 
@@ -2297,7 +2696,12 @@ fun RevenueCpmCard(
                 text = cpmVal,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF0F0F0F)
+                color = Color(0xFF0F0F0F),
+                modifier = Modifier.editableDoubleTap(
+                    currentValue = cpmVal,
+                    label = if (selectedCurrency == "USD") "CPM (USD)" else "CPM (INR)",
+                    onSave = onSaveCpm
+                )
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -2341,7 +2745,9 @@ fun RevenueCpmCard(
 
 @Composable
 fun RevenueSourcesCard(
-    analytics: VideoAnalyticsData
+    analytics: VideoAnalyticsData,
+    onSaveWatchPageAds: (String) -> Unit = {},
+    onSavePremium: (String) -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -2385,7 +2791,17 @@ fun RevenueSourcesCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Watch page ads", fontSize = 13.sp, color = Color(0xFF0F0F0F))
                 Spacer(modifier = Modifier.weight(1f))
-                Text(analytics.watchPageAdsPercent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F0F0F))
+                Text(
+                    text = analytics.watchPageAdsPercent,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF0F0F0F),
+                    modifier = Modifier.editableDoubleTap(
+                        currentValue = analytics.watchPageAdsPercent,
+                        label = "Watch Page Ads %",
+                        onSave = onSaveWatchPageAds
+                    )
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -2395,7 +2811,17 @@ fun RevenueSourcesCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("YouTube Premium", fontSize = 13.sp, color = Color(0xFF0F0F0F))
                 Spacer(modifier = Modifier.weight(1f))
-                Text(analytics.premiumPercent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F0F0F))
+                Text(
+                    text = analytics.premiumPercent,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF0F0F0F),
+                    modifier = Modifier.editableDoubleTap(
+                        currentValue = analytics.premiumPercent,
+                        label = "YouTube Premium %",
+                        onSave = onSavePremium
+                    )
+                )
             }
         }
     }
@@ -2403,7 +2829,8 @@ fun RevenueSourcesCard(
 
 @Composable
 fun RevenueAdTypesCard(
-    analytics: VideoAnalyticsData
+    analytics: VideoAnalyticsData,
+    onSaveAdType: (String, String) -> Unit = { _, _ -> }
 ) {
     Card(
         modifier = Modifier
@@ -2435,22 +2862,34 @@ fun RevenueAdTypesCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
+            data class AdTypeItem(val label: String, val percent: String, val color: Color, val key: String)
+
             val adTypes = listOf(
-                Triple("Skippable video ads (auction)", analytics.skippableAdsPercent, Color(0xFF1B5E20)),
-                Triple("Bumper ads (auction)", analytics.bumperAdsPercent, Color(0xFF2E7D32)),
-                Triple("Non-skippable video ads", analytics.nonSkippableAdsPercent, Color(0xFF43A047)),
-                Triple("Display ads", analytics.displayAdsPercent, Color(0xFF81C784)),
-                Triple("YouTube Premium revenue", analytics.youtubePremiumAdPercent, Color(0xFFC8E6C9))
+                AdTypeItem("Skippable video ads (auction)", analytics.skippableAdsPercent, Color(0xFF1B5E20), "skippableAdsPercent"),
+                AdTypeItem("Bumper ads (auction)", analytics.bumperAdsPercent, Color(0xFF2E7D32), "bumperAdsPercent"),
+                AdTypeItem("Non-skippable video ads", analytics.nonSkippableAdsPercent, Color(0xFF43A047), "nonSkippableAdsPercent"),
+                AdTypeItem("Display ads", analytics.displayAdsPercent, Color(0xFF81C784), "displayAdsPercent"),
+                AdTypeItem("YouTube Premium revenue", analytics.youtubePremiumAdPercent, Color(0xFFC8E6C9), "youtubePremiumAdPercent")
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                adTypes.forEach { (label, percent, color) ->
+                adTypes.forEach { item ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(color))
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(item.color))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(label, fontSize = 13.sp, color = Color(0xFF0F0F0F))
+                        Text(item.label, fontSize = 13.sp, color = Color(0xFF0F0F0F))
                         Spacer(modifier = Modifier.weight(1f))
-                        Text(percent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F0F0F))
+                        Text(
+                            text = item.percent,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF0F0F0F),
+                            modifier = Modifier.editableDoubleTap(
+                                currentValue = item.percent,
+                                label = "${item.label} %",
+                                onSave = { onSaveAdType(item.key, it) }
+                            )
+                        )
                     }
                 }
             }
@@ -2461,7 +2900,8 @@ fun RevenueAdTypesCard(
 @Composable
 fun RevenueMonthlyCard(
     analytics: VideoAnalyticsData,
-    selectedCurrency: String
+    selectedCurrency: String,
+    onSaveMonthlyRevenue: (String) -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -2486,11 +2926,17 @@ fun RevenueMonthlyCard(
                     Text("October 2026", fontSize = 13.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F0F0F))
                     Text("Current billing cycle", fontSize = 11.sp, color = Color(0xFF909090))
                 }
+                val monthRev = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr
                 Text(
-                    text = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
+                    text = monthRev,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2E7D32)
+                    color = Color(0xFF2E7D32),
+                    modifier = Modifier.editableDoubleTap(
+                        currentValue = monthRev,
+                        label = "Monthly Revenue ($selectedCurrency)",
+                        onSave = onSaveMonthlyRevenue
+                    )
                 )
             }
         }

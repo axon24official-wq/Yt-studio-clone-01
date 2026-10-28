@@ -399,7 +399,12 @@ fun ContentScreen(
                         // Status Line: Globe icon • publishedTimeAgo
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.editableDoubleTap(
+                                currentValue = video.publishedTimeAgo,
+                                label = "Published Time (${video.title})",
+                                onSave = { LocalAdminStore.updateVideoPublishedTimeAgo(video.id, it) }
+                            )
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Public,
@@ -468,7 +473,18 @@ fun ContentScreen(
                                 )
                             }
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.editableDoubleTap(
+                                    currentValue = video.likes.toString(),
+                                    label = "Likes (${video.title})",
+                                    onSave = {
+                                        it.toLongOrNull()?.let { l ->
+                                            LocalAdminStore.updateVideoLikes(video.id, l)
+                                        }
+                                    }
+                                )
+                            ) {
                                 Icon(
                                     imageVector = Icons.Outlined.ThumbUp,
                                     contentDescription = "Likes",
@@ -483,7 +499,18 @@ fun ContentScreen(
                                 )
                             }
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.editableDoubleTap(
+                                    currentValue = video.comments.toString(),
+                                    label = "Comments (${video.title})",
+                                    onSave = {
+                                        it.toLongOrNull()?.let { c ->
+                                            LocalAdminStore.updateVideoComments(video.id, c)
+                                        }
+                                    }
+                                )
+                            ) {
                                 Icon(
                                     imageVector = Icons.Outlined.ChatBubbleOutline,
                                     contentDescription = "Comments",
