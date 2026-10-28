@@ -106,3 +106,8 @@ fun MyApplicationTheme(
         )
     }
 }
+
+@Composable
+fun StudioTheme(content: @Composable () -> Unit) {
+    MyApplicationTheme(content = content)
+}

@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import com.example.data.StudioRepository
+import com.example.data.local.LocalAdminStore
+import com.example.ui.components.editableDoubleTap
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -87,7 +89,13 @@ fun EarnScreen(
                             fontSize = 13.5.sp,
                             color = StudioDarkText,
                             lineHeight = 18.sp,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .editableDoubleTap(
+                                    currentValue = StudioRepository.payoutHeadline,
+                                    label = "Payout Headline",
+                                    onSave = { LocalAdminStore.updatePayoutHeadline(it) }
+                                )
                         )
                         Icon(
                             imageVector = Icons.Default.Info,
@@ -107,7 +115,12 @@ fun EarnScreen(
                             fontSize = 34.sp,
                             fontWeight = FontWeight.Bold,
                             color = StudioBlack,
-                            letterSpacing = (-0.5).sp
+                            letterSpacing = (-0.5).sp,
+                            modifier = Modifier.editableDoubleTap(
+                                currentValue = StudioRepository.payoutAmount,
+                                label = "Payout Amount",
+                                onSave = { LocalAdminStore.updatePayoutAmount(it) }
+                            )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -161,7 +174,12 @@ fun EarnScreen(
                         text = StudioRepository.payoutMonthlyAmount,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = StudioBlack
+                        color = StudioBlack,
+                        modifier = Modifier.editableDoubleTap(
+                            currentValue = StudioRepository.payoutMonthlyAmount,
+                            label = "Monthly Earnings",
+                            onSave = { LocalAdminStore.updateMonthlyPayout(StudioRepository.payoutMonthlyMonth, it) }
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))

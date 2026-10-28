@@ -38,9 +38,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.StudioRepository
+import com.example.data.local.LocalAdminStore
 import com.example.model.ContentType
 import com.example.model.VideoItem
 import com.example.ui.components.VideoThumbnailView
+import com.example.ui.components.editableDoubleTap
 import com.example.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -367,7 +369,14 @@ fun ContentScreen(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                                 lineHeight = 18.sp,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .editableDoubleTap(
+                                        currentValue = video.title,
+                                        label = "Video Title",
+                                        onSave = { LocalAdminStore.updateVideoTitle(video.id, it) },
+                                        onSingleClick = { onVideoClick(video) }
+                                    )
                             )
 
                             IconButton(
@@ -433,7 +442,18 @@ fun ContentScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.editableDoubleTap(
+                                    currentValue = video.views.toString(),
+                                    label = "Views (${video.title})",
+                                    onSave = {
+                                        it.toLongOrNull()?.let { v ->
+                                            LocalAdminStore.updateVideoViews(video.id, v)
+                                        }
+                                    }
+                                )
+                            ) {
                                 Icon(
                                     imageVector = Icons.Outlined.BarChart,
                                     contentDescription = "Views",

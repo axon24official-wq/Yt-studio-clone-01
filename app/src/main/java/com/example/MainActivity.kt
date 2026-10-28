@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -14,11 +15,13 @@ import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -27,13 +30,15 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.data.local.LocalAdminStore
 import com.example.model.MetricCardData
 import com.example.model.VideoItem
+import com.example.ui.components.AddVideoDialog
+import com.example.ui.components.InlineEditDialogHost
+import com.example.ui.components.InlineEditManager
+import com.example.ui.components.LocalInlineEditManager
 import com.example.ui.components.StudioBottomNav
 import com.example.ui.components.StudioHeader
 import com.example.ui.components.StudioTab
 import com.example.ui.screens.*
-import com.example.ui.screens.admin.LocalAdminDashboardScreen
-import com.example.ui.screens.admin.LocalAdminLockScreen
-import com.example.ui.screens.admin.LocalAdminLoginScreen
+import com.example.ui.screens.IndividualVideoAnalyticsScreen
 import com.example.ui.theme.*
 
 class MainActivity : ComponentActivity() {
@@ -53,14 +58,23 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudioApp() {
-    var currentTab by remember { mutableStateOf(StudioTab.DASHBOARD) }
-    var isAccountScreenOpen by remember { mutableStateOf(false) }
-    var isAdminPanelOpen by remember { mutableStateOf(false) }
-    var adminFlowScreen by remember { mutableStateOf("LOGIN") }
+    var currentTab by rememberSaveable { mutableStateOf(StudioTab.DASHBOARD) }
+    var isAccountScreenOpen by rememberSaveable { mutableStateOf(false) }
+    var showAddVideoDialog by rememberSaveable { mutableStateOf(false) }
+    val inlineEditManager = remember { InlineEditManager() }
+    var selectedVideoId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedVideoForDetail by remember { mutableStateOf<VideoItem?>(null) }
     var showCreateSheet by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
     var activeAnalyticsDrilldown by remember { mutableStateOf<MetricCardData?>(null) }
+
+    // Automatic restoration of selected video across orientation or process recreation
+    LaunchedEffect(selectedVideoId) {
+        if (selectedVideoId != null && selectedVideoForDetail == null) {
+            selectedVideoForDetail = com.example.data.StudioRepository.findVideoById(selectedVideoId)
+                ?: com.example.data.StudioRepository.dashboardLatestVideo
+        }
+    }
 
     val colors = StudioTheme.colors
 
@@ -70,188 +84,142 @@ fun StudioApp() {
         com.example.data.StudioRepository.startRealtimeListener()
     }
 
-    // Recheck authorization whenever the app resumes from background or Admin Panel opens
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                LocalAdminStore.refreshSessionTick()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
-    LaunchedEffect(isAdminPanelOpen) {
-        if (isAdminPanelOpen) {
-            LocalAdminStore.refreshSessionTick()
-            if (LocalAdminStore.isSessionActive()) {
-                adminFlowScreen = "DASHBOARD"
-            } else {
-                adminFlowScreen = "LOGIN"
-            }
-        }
-    }
-
     // Hardware back navigation handler
-    BackHandler(enabled = isAdminPanelOpen || isAccountScreenOpen || selectedVideoForDetail != null || activeAnalyticsDrilldown != null || currentTab != StudioTab.DASHBOARD) {
+    BackHandler(enabled = isAccountScreenOpen || selectedVideoForDetail != null || activeAnalyticsDrilldown != null || currentTab != StudioTab.DASHBOARD) {
         when {
-            isAdminPanelOpen -> isAdminPanelOpen = false
-            selectedVideoForDetail != null -> selectedVideoForDetail = null
+            selectedVideoForDetail != null -> {
+                selectedVideoForDetail = null
+                selectedVideoId = null
+            }
             isAccountScreenOpen -> isAccountScreenOpen = false
             activeAnalyticsDrilldown != null -> activeAnalyticsDrilldown = null
             currentTab != StudioTab.DASHBOARD -> currentTab = StudioTab.DASHBOARD
         }
     }
 
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .testTag("studio_root_scaffold"),
-        containerColor = colors.background,
-        topBar = {
-            if (!isAccountScreenOpen && !isAdminPanelOpen) {
-                if (currentTab == StudioTab.ANALYTICS && activeAnalyticsDrilldown != null) {
-                    // Top app bar with back arrow and "Views" title
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(colors.background)
-                            .statusBarsPadding()
-                            .padding(horizontal = 4.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = { activeAnalyticsDrilldown = null }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = colors.textPrimary
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = activeAnalyticsDrilldown!!.title,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textPrimary
-                        )
-                    }
-                } else {
-                    StudioHeader(
-                        onAvatarClick = { isAccountScreenOpen = true },
-                        onCreateClick = { showCreateSheet = true },
-                        onNotificationClick = { showNotificationsDialog = true },
-                        onAdminClick = { isAdminPanelOpen = true }
-                    )
-                }
-            }
-        },
-        bottomBar = {
-            if (!isAccountScreenOpen && !isAdminPanelOpen) {
-                StudioBottomNav(
-                    selectedTab = currentTab,
-                    onTabSelected = {
-                        currentTab = it
-                        activeAnalyticsDrilldown = null
-                    }
-                )
-            }
-        }
-    ) { innerPadding ->
-        Box(
+    CompositionLocalProvider(LocalInlineEditManager provides inlineEditManager) {
+        Scaffold(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            if (isAdminPanelOpen) {
-                if (adminFlowScreen == "LOCK" && !LocalAdminStore.isSessionActive()) {
-                    LocalAdminLockScreen(
-                        onUnlockSuccess = {
-                            adminFlowScreen = "DASHBOARD"
-                            LocalAdminStore.refreshSessionTick()
-                        },
-                        onExit = {
-                            isAdminPanelOpen = false
-                            adminFlowScreen = "LOGIN"
-                        },
-                        onLogout = {
-                            LocalAdminStore.logout()
-                            adminFlowScreen = "LOGIN"
-                            isAdminPanelOpen = false
-                        },
-                        onSwitchToLogin = {
-                            adminFlowScreen = "LOGIN"
+                .testTag("studio_root_scaffold"),
+            containerColor = colors.background,
+            topBar = {
+                if (!isAccountScreenOpen && selectedVideoForDetail == null) {
+                    if (currentTab == StudioTab.ANALYTICS && activeAnalyticsDrilldown != null) {
+                        // Top app bar with back arrow and "Views" title
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(colors.background)
+                                .statusBarsPadding()
+                                .padding(horizontal = 4.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = { activeAnalyticsDrilldown = null }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = colors.textPrimary
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = activeAnalyticsDrilldown!!.title,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textPrimary
+                            )
                         }
-                    )
-                } else if (LocalAdminStore.isSessionActive() || adminFlowScreen == "DASHBOARD") {
-                    LocalAdminDashboardScreen(
-                        onClose = { isAdminPanelOpen = false },
-                        onLogout = {
-                            LocalAdminStore.logout()
-                            adminFlowScreen = "LOGIN"
-                            isAdminPanelOpen = false
-                        },
-                        onSessionExpired = {
-                            adminFlowScreen = "LOCK"
-                            LocalAdminStore.refreshSessionTick()
-                        }
-                    )
-                } else {
-                    LocalAdminLoginScreen(
-                        onLoginSuccess = {
-                            adminFlowScreen = "DASHBOARD"
-                            LocalAdminStore.refreshSessionTick()
-                        },
-                        onClose = { isAdminPanelOpen = false },
-                        onSwitchToLock = {
-                            adminFlowScreen = "LOCK"
-                        }
-                    )
-                }
-            } else if (isAccountScreenOpen) {
-                AccountScreen(
-                    onBackClick = { isAccountScreenOpen = false },
-                    onChannelSelected = { },
-                    onOpenAdminPanel = {
-                        isAccountScreenOpen = false
-                        isAdminPanelOpen = true
+                    } else {
+                        StudioHeader(
+                            onAvatarClick = { isAccountScreenOpen = true },
+                            onCreateClick = { showCreateSheet = true },
+                            onNotificationClick = { showNotificationsDialog = true },
+                            onAdminClick = { showAddVideoDialog = true }
+                        )
                     }
-                )
-            } else {
-                when (currentTab) {
-                    StudioTab.DASHBOARD -> DashboardScreen(
-                        onVideoClick = { selectedVideoForDetail = it },
-                        onAnalyticsClick = {
-                            currentTab = StudioTab.ANALYTICS
+                }
+            },
+            bottomBar = {
+                if (!isAccountScreenOpen && selectedVideoForDetail == null) {
+                    StudioBottomNav(
+                        selectedTab = currentTab,
+                        onTabSelected = {
+                            currentTab = it
                             activeAnalyticsDrilldown = null
+                            selectedVideoForDetail = null
+                            selectedVideoId = null
                         }
-                    )
-                    StudioTab.CONTENT -> ContentScreen(
-                        onVideoClick = { selectedVideoForDetail = it }
-                    )
-                    StudioTab.ANALYTICS -> AnalyticsScreen(
-                        onVideoClick = { selectedVideoForDetail = it },
-                        activeDrilldownMetric = activeAnalyticsDrilldown,
-                        onDrilldownChange = { activeAnalyticsDrilldown = it }
-                    )
-                    StudioTab.COMMUNITY -> CommunityScreen()
-                    StudioTab.EARN -> EarnScreen(
-                        onOpenAdminPanel = { isAdminPanelOpen = true }
                     )
                 }
             }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                val currentDetailVideo = selectedVideoForDetail
+                if (isAccountScreenOpen) {
+                    AccountScreen(
+                        onBackClick = { isAccountScreenOpen = false },
+                        onChannelSelected = { },
+                        onOpenAdminPanel = {
+                            isAccountScreenOpen = false
+                            showAddVideoDialog = true
+                        }
+                    )
+                } else if (currentDetailVideo != null) {
+                    IndividualVideoAnalyticsScreen(
+                        video = currentDetailVideo,
+                        onBackClick = {
+                            selectedVideoForDetail = null
+                            selectedVideoId = null
+                        }
+                    )
+                } else {
+                    when (currentTab) {
+                        StudioTab.DASHBOARD -> DashboardScreen(
+                            onVideoClick = { video ->
+                                selectedVideoId = video.id
+                                selectedVideoForDetail = video
+                            },
+                            onAnalyticsClick = {
+                                currentTab = StudioTab.ANALYTICS
+                                activeAnalyticsDrilldown = null
+                            }
+                        )
+                        StudioTab.CONTENT -> ContentScreen(
+                            onVideoClick = { video ->
+                                selectedVideoId = video.id
+                                selectedVideoForDetail = video
+                            }
+                        )
+                        StudioTab.ANALYTICS -> AnalyticsScreen(
+                            onVideoClick = { video ->
+                                selectedVideoId = video.id
+                                selectedVideoForDetail = video
+                            },
+                            activeDrilldownMetric = activeAnalyticsDrilldown,
+                            onDrilldownChange = { activeAnalyticsDrilldown = it }
+                        )
+                        StudioTab.COMMUNITY -> CommunityScreen()
+                        StudioTab.EARN -> EarnScreen(
+                            onOpenAdminPanel = { showAddVideoDialog = true }
+                        )
+                    }
+                }
+            }
         }
+
+        if (showAddVideoDialog) {
+            AddVideoDialog(onDismiss = { showAddVideoDialog = false })
+        }
+
+        InlineEditDialogHost(manager = inlineEditManager)
     }
 
-    // Video detail bottom sheet
-    selectedVideoForDetail?.let { video ->
-        VideoDetailModal(
-            video = video,
-            onDismiss = { selectedVideoForDetail = null }
-        )
-    }
+    // Individual video analytics is rendered as a dedicated screen above
 
     // Create Modal Bottom Sheet
     if (showCreateSheet) {
@@ -276,6 +244,10 @@ fun StudioApp() {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clickable {
+                            showCreateSheet = false
+                            showAddVideoDialog = true
+                        }
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -287,6 +259,10 @@ fun StudioApp() {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clickable {
+                            showCreateSheet = false
+                            showAddVideoDialog = true
+                        }
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -298,6 +274,10 @@ fun StudioApp() {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clickable {
+                            showCreateSheet = false
+                            showAddVideoDialog = true
+                        }
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -328,5 +308,13 @@ fun StudioApp() {
                 }
             }
         )
+    }
+}
+
+@Preview(showBackground = true, name = "Studio App Main Preview")
+@Composable
+fun StudioAppPreview() {
+    StudioTheme {
+        StudioApp()
     }
 }

@@ -75,24 +75,47 @@ object StudioRepository {
     // Dashboard latest published video
     var dashboardLatestVideo by mutableStateOf(
         VideoItem(
-            id = "vid_karwa_chauth",
-            title = "Karwa Chauth Par Biwi Ki Demand |...",
-            type = ContentType.SHORT,
-            duration = "0:59",
-            publishedTimeAgo = "First 15 hours, 27 minutes",
-            views = 1200,
-            likes = 15,
-            comments = 1,
+            id = "vid_pizza_chains",
+            title = "How  Pizza Chains Actually Make Money?",
+            type = ContentType.VIDEO,
+            duration = "8:53",
+            publishedTimeAgo = "First 5 days, 15 hours",
+            views = 12,
+            likes = 0,
+            comments = 0,
             rankingText = "1 of 10",
-            avgPercentageViewed = "78.2%",
-            isExpanded = true,
-            thumbnailTitle = "Karwa Chauth Par Biwi Ki Demand"
+            avgPercentageViewed = "1.8%",
+            thumbnailTitle = "CHEAP PIZZA TRAP"
         )
     )
 
     // Dashboard latest content list (Matching official reference IMG_3103)
     var latestPublishedContent by mutableStateOf(
         listOf(
+        VideoItem(
+            id = "vid_shorts_jon",
+            title = "#shorts",
+            type = ContentType.SHORT,
+            duration = "0:15",
+            publishedTimeAgo = "First 2 days, 15 hours",
+            views = 28,
+            likes = 1,
+            comments = 0,
+            thumbnailTitle = "#shorts"
+        ),
+        VideoItem(
+            id = "vid_pizza_chains",
+            title = "How  Pizza Chains Actually Make Money?",
+            type = ContentType.VIDEO,
+            duration = "8:53",
+            publishedTimeAgo = "First 5 days, 15 hours",
+            views = 12,
+            likes = 0,
+            comments = 0,
+            rankingText = "1 of 10",
+            avgPercentageViewed = "1.8%",
+            thumbnailTitle = "CHEAP PIZZA TRAP"
+        ),
             VideoItem(
                 id = "vid_karwa_chauth",
                 title = "Karwa Chauth Par Biwi Ki Demand |...",
@@ -150,6 +173,19 @@ object StudioRepository {
     // Content tab lists (reactive)
     var contentVideos by mutableStateOf(
         listOf(
+        VideoItem(
+            id = "vid_pizza_chains",
+            title = "How  Pizza Chains Actually Make Money?",
+            type = ContentType.VIDEO,
+            duration = "8:53",
+            publishedTimeAgo = "First 5 days, 15 hours",
+            views = 12,
+            likes = 0,
+            comments = 0,
+            rankingText = "1 of 10",
+            avgPercentageViewed = "1.8%",
+            thumbnailTitle = "CHEAP PIZZA TRAP"
+        ),
             VideoItem(
                 id = "c_vid_ias_1",
                 title = "गरीब लड़की बनी IAS OFFICER | Waqt Sabka Badalta Hai",
@@ -294,6 +330,13 @@ object StudioRepository {
             )
         )
     )
+
+    fun findVideoById(id: String?): VideoItem? {
+        if (id == null) return null
+        if (dashboardLatestVideo.id == id) return dashboardLatestVideo
+        return (contentVideos + contentShorts + contentLiveStreams + latestPublishedContent)
+            .firstOrNull { it.id == id }
+    }
 
     // Analytics: Overview Tab (reactive)
     var overviewViewsMetric by mutableStateOf(

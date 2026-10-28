@@ -38,8 +38,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.StudioRepository
+import com.example.data.local.LocalAdminStore
+import com.example.model.ContentType
 import com.example.model.VideoItem
 import com.example.ui.components.VideoThumbnailView
+import com.example.ui.components.editableDoubleTap
 import com.example.ui.theme.*
 
 @Composable
@@ -72,12 +75,8 @@ fun DashboardScreen(
                     modifier = Modifier
                         .size(72.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(Color(0xFF1E3A8A), Color(0xFF0F172A), Color(0xFF020617))
-                            )
-                        )
-                        .border(1.5.dp, Color(0xFF3B82F6), CircleShape)
+                        .background(Color(0xFFF0F2F5))
+                        .border(1.dp, Color(0xFFEEEEEE), CircleShape)
                         .testTag("channel_summary_avatar"),
                     contentAlignment = Alignment.Center
                 ) {
@@ -89,24 +88,10 @@ fun DashboardScreen(
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Channel Avatar",
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Text(
-                                text = "OFFICIAL",
-                                color = Color(0xFF60A5FA),
-                                fontSize = 8.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
+                        Text(
+                            text = "👦🏻",
+                            fontSize = 38.sp
+                        )
                     }
                 }
 
@@ -117,7 +102,12 @@ fun DashboardScreen(
                         text = profile.name,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = StudioBlack
+                        color = StudioBlack,
+                        modifier = Modifier.editableDoubleTap(
+                            currentValue = profile.name,
+                            label = "Channel Name",
+                            onSave = { LocalAdminStore.updateChannelName(it) }
+                        )
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
@@ -125,7 +115,12 @@ fun DashboardScreen(
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         color = StudioBlack,
-                        letterSpacing = (-0.5).sp
+                        letterSpacing = (-0.5).sp,
+                        modifier = Modifier.editableDoubleTap(
+                            currentValue = profile.subscribersCount,
+                            label = "Total Subscribers",
+                            onSave = { LocalAdminStore.updateSubscribersCount(it) }
+                        )
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
@@ -175,14 +170,16 @@ fun DashboardScreen(
                             modifier = Modifier.weight(1f),
                             label = "Views",
                             value = StudioRepository.dashboardViews,
-                            indicator = DashboardCardIndicator.GREEN_UP_ARROW
+                            indicator = DashboardCardIndicator.GREEN_UP_ARROW,
+                            onSaveValue = { LocalAdminStore.updateDashboardViews(it) }
                         )
 
                         AnalyticsCard(
                             modifier = Modifier.weight(1f),
                             label = "Watch time (hours)",
                             value = StudioRepository.dashboardWatchTime,
-                            indicator = DashboardCardIndicator.GREEN_CHECKMARK
+                            indicator = DashboardCardIndicator.GREEN_CHECKMARK,
+                            onSaveValue = { LocalAdminStore.updateDashboardWatchTime(it) }
                         )
                     }
 
@@ -195,14 +192,16 @@ fun DashboardScreen(
                             modifier = Modifier.weight(1f),
                             label = "Subscribers",
                             value = StudioRepository.dashboardSubscribers,
-                            indicator = DashboardCardIndicator.NONE
+                            indicator = DashboardCardIndicator.NONE,
+                            onSaveValue = { LocalAdminStore.updateDashboardSubscribers(it) }
                         )
 
                         AnalyticsCard(
                             modifier = Modifier.weight(1f),
                             label = "Estimated revenue",
                             value = StudioRepository.dashboardRevenue,
-                            indicator = DashboardCardIndicator.NONE
+                            indicator = DashboardCardIndicator.NONE,
+                            onSaveValue = { LocalAdminStore.updateDashboardRevenue(it) }
                         )
                     }
                 }
@@ -245,12 +244,13 @@ fun DashboardScreen(
                             .clickable { onVideoClick(video) },
                         verticalAlignment = Alignment.Top
                     ) {
+                        val isShort = video.type == ContentType.SHORT
                         VideoThumbnailView(
                             title = video.title,
                             duration = video.duration,
-                            isShort = true,
-                            width = 46.dp,
-                            height = 68.dp,
+                            isShort = isShort,
+                            width = if (isShort) 46.dp else 88.dp,
+                            height = if (isShort) 68.dp else 52.dp,
                             thumbnailUri = video.thumbnailUri
                         )
 
@@ -264,7 +264,13 @@ fun DashboardScreen(
                                 color = StudioBlack,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
-                                lineHeight = 19.sp
+                                lineHeight = 19.sp,
+                                modifier = Modifier.editableDoubleTap(
+                                    currentValue = video.title,
+                                    label = "Video Title",
+                                    onSave = { LocalAdminStore.updateVideoTitle(video.id, it) },
+                                    onSingleClick = { onVideoClick(video) }
+                                )
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -414,7 +420,8 @@ private fun AnalyticsCard(
     modifier: Modifier = Modifier,
     label: String,
     value: String,
-    indicator: DashboardCardIndicator = DashboardCardIndicator.NONE
+    indicator: DashboardCardIndicator = DashboardCardIndicator.NONE,
+    onSaveValue: ((String) -> Unit)? = null
 ) {
     Card(
         modifier = modifier.height(86.dp),
@@ -445,7 +452,14 @@ private fun AnalyticsCard(
                     text = value,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = StudioBlack
+                    color = StudioBlack,
+                    modifier = if (onSaveValue != null) {
+                        Modifier.editableDoubleTap(
+                            currentValue = value,
+                            label = label,
+                            onSave = onSaveValue
+                        )
+                    } else Modifier
                 )
 
                 if (indicator != DashboardCardIndicator.NONE) {

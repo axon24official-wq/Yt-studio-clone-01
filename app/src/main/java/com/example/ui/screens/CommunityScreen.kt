@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import com.example.data.StudioRepository
+import com.example.data.local.LocalAdminStore
+import com.example.ui.components.editableDoubleTap
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -149,10 +151,15 @@ fun CommunityScreen() {
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "39.6k",
+                            text = StudioRepository.communityMonthlyAudience,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = StudioBlack
+                            color = StudioBlack,
+                            modifier = Modifier.editableDoubleTap(
+                                currentValue = StudioRepository.communityMonthlyAudience,
+                                label = "Monthly Audience",
+                                onSave = { LocalAdminStore.updateMonthlyAudience(it) }
+                            )
                         )
                     }
                 }

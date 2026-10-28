@@ -333,6 +333,143 @@ object LocalAdminStore {
         Log.d(TAG, "Saved local Channel Statistics: views=$views, revenue=$revenue")
     }
 
+    // --- Individual Field Inline Update Helpers ---
+
+    fun updateChannelName(name: String) {
+        val clean = name.trim()
+        if (clean.isEmpty()) return
+        prefs?.edit()
+            ?.putString(KEY_PROFILE_NAME, clean)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+        val updated = StudioRepository.danielProfile.copy(name = clean)
+        StudioRepository.danielProfile = updated
+        StudioRepository.currentProfile = updated
+    }
+
+    fun updateSubscribersCount(subs: String) {
+        val clean = subs.trim()
+        if (clean.isEmpty()) return
+        prefs?.edit()
+            ?.putString(KEY_PROFILE_SUBS, clean)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+        val updated = StudioRepository.danielProfile.copy(subscribersCount = clean)
+        StudioRepository.danielProfile = updated
+        StudioRepository.currentProfile = updated
+    }
+
+    fun updateChannelHandle(handle: String) {
+        val clean = handle.trim()
+        if (clean.isEmpty()) return
+        prefs?.edit()
+            ?.putString(KEY_PROFILE_HANDLE, clean)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+        val updated = StudioRepository.danielProfile.copy(handle = clean)
+        StudioRepository.danielProfile = updated
+        StudioRepository.currentProfile = updated
+    }
+
+    fun updateDashboardViews(views: String) {
+        val clean = views.trim()
+        if (clean.isEmpty()) return
+        prefs?.edit()
+            ?.putString(KEY_STATS_VIEWS, clean)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+        StudioRepository.dashboardViews = clean
+        StudioRepository.overviewViewsMetric = StudioRepository.overviewViewsMetric.copy(value = clean)
+    }
+
+    fun updateDashboardWatchTime(watchTime: String) {
+        val clean = watchTime.trim()
+        if (clean.isEmpty()) return
+        prefs?.edit()
+            ?.putString(KEY_STATS_WATCH_TIME, clean)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+        StudioRepository.dashboardWatchTime = clean
+        StudioRepository.overviewWatchTimeMetric = StudioRepository.overviewWatchTimeMetric.copy(value = clean)
+    }
+
+    fun updateDashboardSubscribers(subs: String) {
+        val clean = subs.trim()
+        if (clean.isEmpty()) return
+        prefs?.edit()
+            ?.putString(KEY_STATS_SUBS, clean)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+        StudioRepository.dashboardSubscribers = clean
+        StudioRepository.overviewSubscribersMetric = StudioRepository.overviewSubscribersMetric.copy(value = clean)
+    }
+
+    fun updateDashboardRevenue(revenue: String) {
+        val clean = revenue.trim()
+        if (clean.isEmpty()) return
+        prefs?.edit()
+            ?.putString(KEY_STATS_REVENUE, clean)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+        StudioRepository.dashboardRevenue = clean
+        StudioRepository.overviewEstimatedRevenueMetric = StudioRepository.overviewEstimatedRevenueMetric.copy(value = clean)
+    }
+
+    fun updatePayoutAmount(amount: String) {
+        val clean = amount.trim()
+        if (clean.isEmpty()) return
+        prefs?.edit()
+            ?.putString(KEY_PAYOUT_AMOUNT, clean)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+        StudioRepository.payoutAmount = clean
+    }
+
+    fun updatePayoutHeadline(headline: String) {
+        val clean = headline.trim()
+        if (clean.isEmpty()) return
+        prefs?.edit()
+            ?.putString(KEY_PAYOUT_HEADLINE, clean)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+        StudioRepository.payoutHeadline = clean
+    }
+
+    fun updateMonthlyPayout(month: String, amount: String) {
+        val cleanMonth = month.trim()
+        val cleanAmount = amount.trim()
+        prefs?.edit()
+            ?.putString(KEY_PAYOUT_MONTHLY_MONTH, cleanMonth)
+            ?.putString(KEY_PAYOUT_MONTHLY_AMOUNT, cleanAmount)
+            ?.putBoolean(KEY_HAS_LOCAL_DATA, true)
+            ?.apply()
+        StudioRepository.payoutMonthlyMonth = cleanMonth
+        StudioRepository.payoutMonthlyAmount = cleanAmount
+    }
+
+    fun updateMonthlyAudience(audience: String) {
+        saveMonthlyAudience(audience.trim())
+    }
+
+    fun updateVideoTitle(videoId: String, newTitle: String) {
+        val cleanTitle = newTitle.trim()
+        if (cleanTitle.isEmpty()) return
+
+        val existingVideo = StudioRepository.findVideoById(videoId)
+        if (existingVideo != null) {
+            val updated = existingVideo.copy(title = cleanTitle)
+            addOrUpdateVideo(updated, showOnDashboard = StudioRepository.latestPublishedContent.any { it.id == videoId })
+        }
+    }
+
+    fun updateVideoViews(videoId: String, newViews: Long) {
+        val existingVideo = StudioRepository.findVideoById(videoId)
+        if (existingVideo != null) {
+            val updated = existingVideo.copy(views = newViews)
+            addOrUpdateVideo(updated, showOnDashboard = StudioRepository.latestPublishedContent.any { it.id == videoId })
+        }
+    }
+
     // --- Exact Sum Analytics Distribution Algorithm ---
 
     /**

@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.StudioRepository
+import com.example.data.local.LocalAdminStore
 import com.example.model.ContentType
 import com.example.model.DrilldownContentItem
 import com.example.model.MetricCardData
@@ -1904,7 +1905,19 @@ private fun MetricCarouselCard(
                 text = metric.value,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = colors.textPrimary
+                color = colors.textPrimary,
+                modifier = Modifier.editableDoubleTap(
+                    currentValue = metric.value,
+                    label = metric.title,
+                    onSave = { newVal ->
+                        when (metric.title) {
+                            "Views" -> LocalAdminStore.updateDashboardViews(newVal)
+                            "Watch time (hours)" -> LocalAdminStore.updateDashboardWatchTime(newVal)
+                            "Subscribers" -> LocalAdminStore.updateDashboardSubscribers(newVal)
+                            "Estimated revenue" -> LocalAdminStore.updateDashboardRevenue(newVal)
+                        }
+                    }
+                )
             )
             Spacer(modifier = Modifier.width(8.dp))
             MetricIndicatorBadge(
