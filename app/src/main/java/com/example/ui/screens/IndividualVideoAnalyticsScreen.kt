@@ -143,11 +143,11 @@ data class VideoAnalyticsData(
                     publishedDateFormatted = "21 October 2026 • Published",
                     visibility = "Public",
                     notices = "—",
-                    estimatedRevenueUsd = "US$0.01",
+                    estimatedRevenueUsd = "$0.01",
                     estimatedRevenueInr = "₹0.83",
-                    rpmUsd = "US$0.40",
+                    rpmUsd = "$0.40",
                     rpmInr = "₹33.20",
-                    cpmUsd = "US$1.15",
+                    cpmUsd = "$1.15",
                     cpmInr = "₹95.45",
                     watchPageAdsPercent = "97.5%",
                     premiumPercent = "2.5%",
@@ -214,11 +214,11 @@ data class VideoAnalyticsData(
                     publishedDateFormatted = "${v.publishedTimeAgo} • Published",
                     visibility = "Public",
                     notices = "—",
-                    estimatedRevenueUsd = String.format("US$%.2f", revUsdNum),
+                    estimatedRevenueUsd = String.format("$%.2f", revUsdNum),
                     estimatedRevenueInr = String.format("₹%,.2f", revInrNum),
-                    rpmUsd = String.format("US$%.2f", rpmUsdNum),
+                    rpmUsd = String.format("$%.2f", rpmUsdNum),
                     rpmInr = String.format("₹%.2f", rpmInrNum),
-                    cpmUsd = String.format("US$%.2f", cpmUsdNum),
+                    cpmUsd = String.format("$%.2f", cpmUsdNum),
                     cpmInr = String.format("₹%.2f", cpmInrNum),
                     watchPageAdsPercent = "96.8%",
                     premiumPercent = "3.2%",
@@ -259,11 +259,11 @@ data class VideoAnalyticsData(
         val pubDate = LocalAdminStore.getVideoMetricOverride(videoId, "publishedDateFormatted", publishedDateFormatted)
         val vis = LocalAdminStore.getVideoMetricOverride(videoId, "visibility", visibility)
         val notc = LocalAdminStore.getVideoMetricOverride(videoId, "notices", notices)
-        val revUsd = LocalAdminStore.getVideoMetricOverride(videoId, "estimatedRevenueUsd", estimatedRevenueUsd)
+        val revUsd = LocalAdminStore.getVideoMetricOverride(videoId, "estimatedRevenueUsd", estimatedRevenueUsd).removePrefix("US")
         val revInr = LocalAdminStore.getVideoMetricOverride(videoId, "estimatedRevenueInr", estimatedRevenueInr)
-        val rUsd = LocalAdminStore.getVideoMetricOverride(videoId, "rpmUsd", rpmUsd)
+        val rUsd = LocalAdminStore.getVideoMetricOverride(videoId, "rpmUsd", rpmUsd).removePrefix("US")
         val rInr = LocalAdminStore.getVideoMetricOverride(videoId, "rpmInr", rpmInr)
-        val cUsd = LocalAdminStore.getVideoMetricOverride(videoId, "cpmUsd", cpmUsd)
+        val cUsd = LocalAdminStore.getVideoMetricOverride(videoId, "cpmUsd", cpmUsd).removePrefix("US")
         val cInr = LocalAdminStore.getVideoMetricOverride(videoId, "cpmInr", cpmInr)
         val wpa = LocalAdminStore.getVideoMetricOverride(videoId, "watchPageAdsPercent", watchPageAdsPercent)
         val prem = LocalAdminStore.getVideoMetricOverride(videoId, "premiumPercent", premiumPercent)
@@ -319,7 +319,6 @@ fun IndividualVideoAnalyticsScreen(
 ) {
     var currentViewMode by rememberSaveable { mutableStateOf(initialViewMode) }
     var selectedAnalyticsTab by rememberSaveable { mutableStateOf(initialTab) }
-    var selectedCurrency by rememberSaveable { mutableStateOf("USD") }
 
     val metricsVersion = LocalAdminStore.videoMetricsVersion
     val analytics = remember(video.id, video.views, video.likes, metricsVersion) {
@@ -340,13 +339,14 @@ fun IndividualVideoAnalyticsScreen(
         // LEVEL 1: Video Performance Landing Page (Matches reference video at 0:04)
         // =========================================================================
         Scaffold(
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color.White)
                         .statusBarsPadding()
-                        .padding(horizontal = 4.dp, vertical = 6.dp),
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -693,19 +693,15 @@ fun IndividualVideoAnalyticsScreen(
                                             Text("Est. revenue", fontSize = 12.sp, color = Color(0xFF606060))
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(
-                                                text = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
+                                                text = analytics.estimatedRevenueUsd,
                                                 fontSize = 18.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFF2E7D32),
                                                 modifier = Modifier.editableDoubleTap(
-                                                    currentValue = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
+                                                    currentValue = analytics.estimatedRevenueUsd,
                                                     label = "Estimated Revenue",
                                                     onSave = {
-                                                        if (selectedCurrency == "USD") {
-                                                            LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", it)
-                                                        } else {
-                                                            LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueInr", it)
-                                                        }
+                                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", it)
                                                     }
                                                 )
                                             )
@@ -793,37 +789,6 @@ fun IndividualVideoAnalyticsScreen(
                                             )
                                         }
                                     }
-
-                                    // Currency switcher button (USD / INR)
-                                    Surface(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .clickable {
-                                                selectedCurrency = if (selectedCurrency == "USD") "INR" else "USD"
-                                            },
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = Color(0xFFF2F4F7),
-                                        border = BorderStroke(1.dp, Color(0xFFE5E7EB))
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = if (selectedCurrency == "USD") "US$" else "₹ INR",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF0F0F0F)
-                                            )
-                                            Spacer(modifier = Modifier.width(3.dp))
-                                            Icon(
-                                                imageVector = Icons.Default.SwapHoriz,
-                                                contentDescription = "Toggle currency",
-                                                tint = Color(0xFF606060),
-                                                modifier = Modifier.size(13.dp)
-                                            )
-                                        }
-                                    }
                                 }
 
                                 Spacer(modifier = Modifier.height(14.dp))
@@ -835,27 +800,17 @@ fun IndividualVideoAnalyticsScreen(
                                 ) {
                                     Column {
                                         Text(
-                                            text = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
+                                            text = analytics.estimatedRevenueUsd,
                                             fontSize = 24.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFF2E7D32),
                                             modifier = Modifier.editableDoubleTap(
-                                                currentValue = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
+                                                currentValue = analytics.estimatedRevenueUsd,
                                                 label = "Estimated Revenue",
                                                 onSave = {
-                                                    if (selectedCurrency == "USD") {
-                                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", it)
-                                                    } else {
-                                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueInr", it)
-                                                    }
+                                                    LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", it)
                                                 }
                                             )
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = if (selectedCurrency == "USD") "≈ ${analytics.estimatedRevenueInr} INR" else "≈ ${analytics.estimatedRevenueUsd} USD",
-                                            fontSize = 12.sp,
-                                            color = Color(0xFF909090)
                                         )
                                     }
 
@@ -903,7 +858,7 @@ fun IndividualVideoAnalyticsScreen(
                                             Text("RPM", fontSize = 11.sp, color = Color(0xFF606060))
                                             Spacer(modifier = Modifier.height(2.dp))
                                             Text(
-                                                text = if (selectedCurrency == "USD") analytics.rpmUsd else analytics.rpmInr,
+                                                text = analytics.rpmUsd,
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFF0F0F0F)
@@ -921,7 +876,7 @@ fun IndividualVideoAnalyticsScreen(
                                             Text("Playback-based CPM", fontSize = 11.sp, color = Color(0xFF606060))
                                             Spacer(modifier = Modifier.height(2.dp))
                                             Text(
-                                                text = if (selectedCurrency == "USD") analytics.cpmUsd else analytics.cpmInr,
+                                                text = analytics.cpmUsd,
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFF0F0F0F)
@@ -1044,6 +999,7 @@ fun IndividualVideoAnalyticsScreen(
         // LEVEL 2: Detailed Video Analytics Screen (Matches video at 0:07 - 0:18)
         // =========================================================================
         Scaffold(
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 Column(
                     modifier = Modifier
@@ -1055,7 +1011,7 @@ fun IndividualVideoAnalyticsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 4.dp, vertical = 6.dp),
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onBackClick) {
@@ -1171,7 +1127,7 @@ fun IndividualVideoAnalyticsScreen(
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp)
+                contentPadding = PaddingValues(top = 8.dp, bottom = 48.dp)
             ) {
                 when (selectedAnalyticsTab) {
                     VideoAnalyticsSubTab.OVERVIEW -> {
@@ -1455,34 +1411,18 @@ fun IndividualVideoAnalyticsScreen(
                                                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                                             ) {
                                                 Column(modifier = Modifier.padding(16.dp)) {
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        Text("Estimated revenue", fontSize = 13.sp, color = Color(0xFF606060))
-                                                        Text(
-                                                            text = if (selectedCurrency == "USD") "US$" else "₹ INR",
-                                                            fontSize = 11.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = Color(0xFF2E7D32)
-                                                        )
-                                                    }
+                                                    Text("Estimated revenue", fontSize = 13.sp, color = Color(0xFF606060))
                                                     Spacer(modifier = Modifier.height(4.dp))
                                                     Text(
-                                                        text = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
+                                                        text = analytics.estimatedRevenueUsd,
                                                         fontSize = 24.sp,
                                                         fontWeight = FontWeight.Bold,
                                                         color = Color(0xFF2E7D32),
                                                         modifier = Modifier.editableDoubleTap(
-                                                            currentValue = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr,
+                                                            currentValue = analytics.estimatedRevenueUsd,
                                                             label = "Estimated Revenue",
                                                             onSave = {
-                                                                if (selectedCurrency == "USD") {
-                                                                    LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", it)
-                                                                } else {
-                                                                    LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueInr", it)
-                                                                }
+                                                                LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", it)
                                                             }
                                                         )
                                                     )
@@ -1494,9 +1434,9 @@ fun IndividualVideoAnalyticsScreen(
                                                             verticalArrangement = Arrangement.SpaceBetween,
                                                             horizontalAlignment = Alignment.End
                                                         ) {
-                                                            Text(if (selectedCurrency == "USD") "$1.0" else "₹80", fontSize = 10.sp, color = Color(0xFF909090))
-                                                            Text(if (selectedCurrency == "USD") "$0.6" else "₹50", fontSize = 10.sp, color = Color(0xFF909090))
-                                                            Text(if (selectedCurrency == "USD") "$0.3" else "₹25", fontSize = 10.sp, color = Color(0xFF909090))
+                                                            Text("$1.00", fontSize = 10.sp, color = Color(0xFF909090))
+                                                            Text("$0.66", fontSize = 10.sp, color = Color(0xFF909090))
+                                                            Text("$0.33", fontSize = 10.sp, color = Color(0xFF909090))
                                                             Text("0", fontSize = 10.sp, color = Color(0xFF909090))
                                                         }
 
@@ -2058,18 +1998,12 @@ fun IndividualVideoAnalyticsScreen(
                     }
 
                     VideoAnalyticsSubTab.REVENUE -> {
-                        // 1. Estimated Revenue Card with trend graph and currency switcher (US$ / INR)
+                        // 1. Estimated Revenue Card with trend graph
                         item {
                             RevenueEstimatedEarningsCard(
                                 analytics = analytics,
-                                selectedCurrency = selectedCurrency,
-                                onCurrencyChange = { selectedCurrency = it },
                                 onSavePrimary = { newVal ->
-                                    if (selectedCurrency == "USD") {
-                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", newVal)
-                                    } else {
-                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueInr", newVal)
-                                    }
+                                    LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", newVal)
                                 }
                             )
                         }
@@ -2078,13 +2012,8 @@ fun IndividualVideoAnalyticsScreen(
                         item {
                             RevenueRpmCard(
                                 analytics = analytics,
-                                selectedCurrency = selectedCurrency,
                                 onSaveRpm = { newVal ->
-                                    if (selectedCurrency == "USD") {
-                                        LocalAdminStore.setVideoMetricOverride(video.id, "rpmUsd", newVal)
-                                    } else {
-                                        LocalAdminStore.setVideoMetricOverride(video.id, "rpmInr", newVal)
-                                    }
+                                    LocalAdminStore.setVideoMetricOverride(video.id, "rpmUsd", newVal)
                                 }
                             )
                         }
@@ -2093,13 +2022,8 @@ fun IndividualVideoAnalyticsScreen(
                         item {
                             RevenueCpmCard(
                                 analytics = analytics,
-                                selectedCurrency = selectedCurrency,
                                 onSaveCpm = { newVal ->
-                                    if (selectedCurrency == "USD") {
-                                        LocalAdminStore.setVideoMetricOverride(video.id, "cpmUsd", newVal)
-                                    } else {
-                                        LocalAdminStore.setVideoMetricOverride(video.id, "cpmInr", newVal)
-                                    }
+                                    LocalAdminStore.setVideoMetricOverride(video.id, "cpmUsd", newVal)
                                 }
                             )
                         }
@@ -2127,13 +2051,8 @@ fun IndividualVideoAnalyticsScreen(
                         item {
                             RevenueMonthlyCard(
                                 analytics = analytics,
-                                selectedCurrency = selectedCurrency,
                                 onSaveMonthlyRevenue = { newVal ->
-                                    if (selectedCurrency == "USD") {
-                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", newVal)
-                                    } else {
-                                        LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueInr", newVal)
-                                    }
+                                    LocalAdminStore.setVideoMetricOverride(video.id, "estimatedRevenueUsd", newVal)
                                 }
                             )
                         }
@@ -2335,8 +2254,6 @@ fun TrafficSourceReportCard(
 @Composable
 fun RevenueEstimatedEarningsCard(
     analytics: VideoAnalyticsData,
-    selectedCurrency: String,
-    onCurrencyChange: (String) -> Unit,
     onSavePrimary: (String) -> Unit = {}
 ) {
     Card(
@@ -2349,81 +2266,21 @@ fun RevenueEstimatedEarningsCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Estimated revenue",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = Color(0xFF0F0F0F)
-                    )
-                    Text(
-                        text = "Since published",
-                        fontSize = 12.sp,
-                        color = Color(0xFF606060)
-                    )
-                }
-
-                // Currency switcher pills: USD / INR
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFFF5F5F5))
-                        .padding(2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        onClick = { onCurrencyChange("USD") },
-                        shape = RoundedCornerShape(16.dp),
-                        color = if (selectedCurrency == "USD") Color(0xFF0F0F0F) else Color.Transparent,
-                        modifier = Modifier
-                            .defaultMinSize(minWidth = 48.dp, minHeight = 32.dp)
-                            .testTag("revenue_currency_usd_button")
-                    ) {
-                        Box(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "US$",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (selectedCurrency == "USD") Color.White else Color(0xFF606060)
-                            )
-                        }
-                    }
-
-                    Surface(
-                        onClick = { onCurrencyChange("INR") },
-                        shape = RoundedCornerShape(16.dp),
-                        color = if (selectedCurrency == "INR") Color(0xFF0F0F0F) else Color.Transparent,
-                        modifier = Modifier
-                            .defaultMinSize(minWidth = 48.dp, minHeight = 32.dp)
-                            .testTag("revenue_currency_inr_button")
-                    ) {
-                        Box(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "INR (₹)",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (selectedCurrency == "INR") Color.White else Color(0xFF606060)
-                            )
-                        }
-                    }
-                }
-            }
+            Text(
+                text = "Estimated revenue",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = Color(0xFF0F0F0F)
+            )
+            Text(
+                text = "Since published",
+                fontSize = 12.sp,
+                color = Color(0xFF606060)
+            )
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            val primaryValue = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr
-            val secondaryValue = if (selectedCurrency == "USD") analytics.estimatedRevenueInr else analytics.estimatedRevenueUsd
+            val primaryValue = analytics.estimatedRevenueUsd.removePrefix("US")
 
             Text(
                 text = primaryValue,
@@ -2432,14 +2289,9 @@ fun RevenueEstimatedEarningsCard(
                 color = Color(0xFF0F0F0F),
                 modifier = Modifier.editableDoubleTap(
                     currentValue = primaryValue,
-                    label = if (selectedCurrency == "USD") "Estimated Revenue (USD)" else "Estimated Revenue (INR)",
+                    label = "Estimated Revenue",
                     onSave = onSavePrimary
                 )
-            )
-            Text(
-                text = "≈ $secondaryValue",
-                fontSize = 12.5.sp,
-                color = Color(0xFF606060)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -2451,9 +2303,9 @@ fun RevenueEstimatedEarningsCard(
                     verticalArrangement = Arrangement.SpaceBetween,
                     horizontalAlignment = Alignment.End
                 ) {
-                    Text(if (selectedCurrency == "USD") "$1.00" else "₹80", fontSize = 10.sp, color = Color(0xFF909090))
-                    Text(if (selectedCurrency == "USD") "$0.66" else "₹50", fontSize = 10.sp, color = Color(0xFF909090))
-                    Text(if (selectedCurrency == "USD") "$0.33" else "₹25", fontSize = 10.sp, color = Color(0xFF909090))
+                    Text("$1.00", fontSize = 10.sp, color = Color(0xFF909090))
+                    Text("$0.66", fontSize = 10.sp, color = Color(0xFF909090))
+                    Text("$0.33", fontSize = 10.sp, color = Color(0xFF909090))
                     Text("0", fontSize = 10.sp, color = Color(0xFF909090))
                 }
 
@@ -2523,7 +2375,6 @@ fun RevenueEstimatedEarningsCard(
 @Composable
 fun RevenueRpmCard(
     analytics: VideoAnalyticsData,
-    selectedCurrency: String,
     onSaveRpm: (String) -> Unit = {}
 ) {
     var showRpmInfoDialog by remember { mutableStateOf(false) }
@@ -2586,7 +2437,7 @@ fun RevenueRpmCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            val rpmVal = if (selectedCurrency == "USD") analytics.rpmUsd else analytics.rpmInr
+            val rpmVal = analytics.rpmUsd
             Text(
                 text = rpmVal,
                 fontSize = 24.sp,
@@ -2594,7 +2445,7 @@ fun RevenueRpmCard(
                 color = Color(0xFF0F0F0F),
                 modifier = Modifier.editableDoubleTap(
                     currentValue = rpmVal,
-                    label = if (selectedCurrency == "USD") "RPM (USD)" else "RPM (INR)",
+                    label = "RPM",
                     onSave = onSaveRpm
                 )
             )
@@ -2641,7 +2492,6 @@ fun RevenueRpmCard(
 @Composable
 fun RevenueCpmCard(
     analytics: VideoAnalyticsData,
-    selectedCurrency: String,
     onSaveCpm: (String) -> Unit = {}
 ) {
     var showCpmInfoDialog by remember { mutableStateOf(false) }
@@ -2691,7 +2541,7 @@ fun RevenueCpmCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            val cpmVal = if (selectedCurrency == "USD") analytics.cpmUsd else analytics.cpmInr
+            val cpmVal = analytics.cpmUsd
             Text(
                 text = cpmVal,
                 fontSize = 24.sp,
@@ -2699,7 +2549,7 @@ fun RevenueCpmCard(
                 color = Color(0xFF0F0F0F),
                 modifier = Modifier.editableDoubleTap(
                     currentValue = cpmVal,
-                    label = if (selectedCurrency == "USD") "CPM (USD)" else "CPM (INR)",
+                    label = "CPM",
                     onSave = onSaveCpm
                 )
             )
@@ -2900,7 +2750,6 @@ fun RevenueAdTypesCard(
 @Composable
 fun RevenueMonthlyCard(
     analytics: VideoAnalyticsData,
-    selectedCurrency: String,
     onSaveMonthlyRevenue: (String) -> Unit = {}
 ) {
     Card(
@@ -2926,7 +2775,7 @@ fun RevenueMonthlyCard(
                     Text("October 2026", fontSize = 13.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F0F0F))
                     Text("Current billing cycle", fontSize = 11.sp, color = Color(0xFF909090))
                 }
-                val monthRev = if (selectedCurrency == "USD") analytics.estimatedRevenueUsd else analytics.estimatedRevenueInr
+                val monthRev = analytics.estimatedRevenueUsd
                 Text(
                     text = monthRev,
                     fontSize = 15.sp,
@@ -2934,7 +2783,7 @@ fun RevenueMonthlyCard(
                     color = Color(0xFF2E7D32),
                     modifier = Modifier.editableDoubleTap(
                         currentValue = monthRev,
-                        label = "Monthly Revenue ($selectedCurrency)",
+                        label = "Monthly Revenue",
                         onSave = onSaveMonthlyRevenue
                     )
                 )

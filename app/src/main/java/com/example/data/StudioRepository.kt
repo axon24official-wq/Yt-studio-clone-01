@@ -48,7 +48,7 @@ object StudioRepository {
     var dashboardViews by mutableStateOf("90.7k")
     var dashboardWatchTime by mutableStateOf("1.1k")
     var dashboardSubscribers by mutableStateOf("-1.0k")
-    var dashboardRevenue by mutableStateOf("US$8.65")
+    var dashboardRevenue by mutableStateOf("$8.65")
     var dashboardPeriodLabel by mutableStateOf("Last 28 days")
 
     // Monetization States (reactive)
@@ -392,7 +392,7 @@ object StudioRepository {
         MetricCardData(
             title = "Estimated revenue",
             value = "$416.93",
-            subtitle = "US$1.20 more than usual",
+            subtitle = "$1.20 more than usual",
             isPositive = true,
             showArrow = true,
             trendData = listOf(25f, 30f, 35f, 45f, 42f, 50f, 48f, 55f, 52f, 40f, 44f, 48f, 52f, 58f, 62f, 59f, 65f, 68f, 70f, 75f),
@@ -634,7 +634,7 @@ object StudioRepository {
         dashboardViews = "90.7k"
         dashboardWatchTime = "1.1k"
         dashboardSubscribers = "-1.0k"
-        dashboardRevenue = "US$8.65"
+        dashboardRevenue = "$8.65"
         dashboardPeriodLabel = "Last 28 days"
         isMonetized = true
         monetizationWatchHours = "3,140"

@@ -1328,7 +1328,7 @@ private fun RevenueTabContent() {
                         }
 
                         Text(
-                            text = "US$6,768.14",
+                            text = "$6,768.14",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textPrimary
@@ -1337,13 +1337,13 @@ private fun RevenueTabContent() {
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Smooth Teal Revenue Line Chart (Frame 048: US$6.9k to 0, 21 Jul to 25 Oct)
+                    // Smooth Teal Revenue Line Chart (Frame 048: $6.9k to 0, 21 Jul to 25 Oct)
                     TrendLineChart(
                         data = listOf(0f, 15f, 35f, 52f, 62f, 66f, 68f, 68.5f, 68.8f, 69f, 69f, 69.1f),
                         lineColor = Color(0xFF00ACC1),
-                        yMinLabel = "US$0",
-                        yMidLabel = "US$4.6k",
-                        yMaxLabel = "US$6.9k",
+                        yMinLabel = "$0",
+                        yMidLabel = "$4.6k",
+                        yMaxLabel = "$6.9k",
                         startDateLabel = "21 Jul",
                         endDateLabel = "25 Oct"
                     )
@@ -1431,7 +1431,7 @@ private fun RevenueTabContent() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(text = "Watch page ads", fontSize = 14.sp, color = colors.textPrimary)
-                        Text(text = "US$6,763.85", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                        Text(text = "$6,763.85", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     StudioLinearProgress(percentage = 99.5f, barColor = Color(0xFF00ACC1))
@@ -1445,7 +1445,7 @@ private fun RevenueTabContent() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(text = "YouTube Premium", fontSize = 14.sp, color = colors.textPrimary)
-                        Text(text = "US$4.28", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                        Text(text = "$4.28", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     StudioLinearProgress(percentage = 1.5f, barColor = Color(0xFF00ACC1))
@@ -1477,7 +1477,7 @@ private fun RevenueTabContent() {
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "US$0.74",
+                        text = "$0.74",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textPrimary

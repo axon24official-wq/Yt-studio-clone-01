@@ -98,13 +98,31 @@ fun StudioApp() {
     }
 
     CompositionLocalProvider(LocalInlineEditManager provides inlineEditManager) {
-        Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .testTag("studio_root_scaffold"),
-            containerColor = colors.background,
-            topBar = {
-                if (!isAccountScreenOpen && selectedVideoForDetail == null) {
+        val currentDetailVideo = selectedVideoForDetail
+        if (currentDetailVideo != null) {
+            IndividualVideoAnalyticsScreen(
+                video = currentDetailVideo,
+                onBackClick = {
+                    selectedVideoForDetail = null
+                    selectedVideoId = null
+                }
+            )
+        } else if (isAccountScreenOpen) {
+            AccountScreen(
+                onBackClick = { isAccountScreenOpen = false },
+                onChannelSelected = { },
+                onOpenAdminPanel = {
+                    isAccountScreenOpen = false
+                    showAddVideoDialog = true
+                }
+            )
+        } else {
+            Scaffold(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("studio_root_scaffold"),
+                containerColor = colors.background,
+                topBar = {
                     if (currentTab == StudioTab.ANALYTICS && activeAnalyticsDrilldown != null) {
                         // Top app bar with back arrow and "Views" title
                         Row(
@@ -138,10 +156,8 @@ fun StudioApp() {
                             onAdminClick = { showAddVideoDialog = true }
                         )
                     }
-                }
-            },
-            bottomBar = {
-                if (!isAccountScreenOpen && selectedVideoForDetail == null) {
+                },
+                bottomBar = {
                     StudioBottomNav(
                         selectedTab = currentTab,
                         onTabSelected = {
@@ -152,32 +168,12 @@ fun StudioApp() {
                         }
                     )
                 }
-            }
-        ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                val currentDetailVideo = selectedVideoForDetail
-                if (isAccountScreenOpen) {
-                    AccountScreen(
-                        onBackClick = { isAccountScreenOpen = false },
-                        onChannelSelected = { },
-                        onOpenAdminPanel = {
-                            isAccountScreenOpen = false
-                            showAddVideoDialog = true
-                        }
-                    )
-                } else if (currentDetailVideo != null) {
-                    IndividualVideoAnalyticsScreen(
-                        video = currentDetailVideo,
-                        onBackClick = {
-                            selectedVideoForDetail = null
-                            selectedVideoId = null
-                        }
-                    )
-                } else {
+            ) { innerPadding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
                     when (currentTab) {
                         StudioTab.DASHBOARD -> DashboardScreen(
                             onVideoClick = { video ->
